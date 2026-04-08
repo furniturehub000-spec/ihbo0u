@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     *, *::before, *::after {
       margin: 0;
@@ -507,6 +508,13 @@
       margin-top: 0.1rem;
     }
 
+    .order-item-down {
+      font-size: 0.7rem;
+      color: #1a1a1a;
+      font-weight: 600;
+      margin-top: 0.1rem;
+    }
+
     .order-item-qty {
       display: flex;
       align-items: center;
@@ -582,22 +590,636 @@
       color: #1a1a1a;
     }
 
-    .order-clear-btn {
+    .order-confirm-btn {
       width: 100%;
-      padding: 0.55rem;
+      padding: 0.75rem;
       border-radius: 8px;
-      border: 1.5px solid rgba(0, 0, 0, 0.1);
-      background: transparent;
+      border: none;
+      background: #1a1a1a;
       font-family: 'Inter', sans-serif;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: #888;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
       cursor: pointer;
       touch-action: manipulation;
       transition: all 0.2s;
     }
 
-    .order-clear-btn:active { background: rgba(0,0,0,0.04); }
+    .order-confirm-btn:hover { background: #333; }
+    .order-confirm-btn:active { background: #000; }
+
+    .order-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .order-confirm-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      max-width: 320px;
+      width: 90%;
+    }
+
+    .order-confirm-icon {
+      width: 60px;
+      height: 60px;
+      background: #0d9488;
+      color: #fff;
+      font-size: 2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+
+    .order-confirm-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 0.5rem;
+    }
+
+    .order-confirm-number {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #635bff;
+      background: #f0f4ff;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-family: monospace;
+      letter-spacing: 0.05em;
+    }
+
+    .order-confirm-msg {
+      font-size: 0.9rem;
+      color: #697386;
+      margin-bottom: 1.5rem;
+    }
+
+    .order-confirm-done {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: none;
+      background: #1a1a1a;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .order-confirm-done:hover { background: #333; }
+
+    .order-review-box {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 480px;
+      width: 95%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .review-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .review-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f6f8fa;
+      border-radius: 50%;
+      font-size: 1.25rem;
+      color: #697386;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .review-close:hover { background: #e3e8ee; }
+
+    .review-items {
+      padding: 1rem 1.5rem;
+      max-height: 200px;
+      overflow-y: auto;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .review-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+    }
+
+    .review-item + .review-item {
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .review-item-img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #f6f8fa;
+    }
+
+    .review-item-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .review-item-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1a1a1a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .review-item-plan {
+      font-size: 0.8rem;
+      color: #697386;
+    }
+
+    .review-item-due {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .review-item-amount {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #1a1a1a;
+    }
+
+    .review-item-due-label {
+      font-size: 0.7rem;
+      color: #0d9488;
+    }
+
+    .review-delivery-section {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .review-delivery-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 0.75rem;
+    }
+
+    .review-delivery-options {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .review-delivery-option {
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .review-delivery-option input {
+      display: none;
+    }
+
+    .review-option-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      border: 2px solid #e3e8ee;
+      border-radius: 10px;
+      transition: all 0.15s;
+    }
+
+    .review-delivery-option input:checked + .review-option-content {
+      border-color: #1a1a1a;
+      background: #fafafa;
+    }
+
+    .review-option-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1a1a1a;
+    }
+
+    .review-option-price {
+      font-size: 0.8rem;
+      color: #697386;
+      margin-top: 0.2rem;
+    }
+
+    .review-totals {
+      padding: 1rem 1.5rem;
+      background: #f6f8fa;
+    }
+
+    .review-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #3c4257;
+      padding: 0.3rem 0;
+    }
+
+    .review-total-row.final {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      padding-top: 0.6rem;
+      margin-top: 0.4rem;
+      border-top: 1px solid #e3e8ee;
+    }
+
+    .review-next-btn {
+      margin: 1.25rem 1.5rem;
+      padding: 0.85rem;
+      border-radius: 10px;
+      border: none;
+      background: #1a1a1a;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .review-next-btn:hover { background: #333; }
+
+    /* ===================== CUSTOMER INFO FORM ===================== */
+
+    .customer-form-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .customer-form-container {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 800px;
+      width: 95%;
+      max-height: 90vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .customer-form-sidebar {
+      width: 240px;
+      background: #f6f8fa;
+      padding: 1.5rem 0;
+      border-right: 1px solid #e3e8ee;
+      flex-shrink: 0;
+    }
+
+    .customer-form-sidebar-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #697386;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .customer-form-step {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.7rem 1.25rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .customer-form-step:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .customer-form-step.active {
+      background: #fff;
+      border-left: 3px solid #1a1a1a;
+      padding-left: calc(1.25rem - 3px);
+    }
+
+    .customer-form-step.completed {
+      cursor: pointer;
+    }
+
+    .customer-form-step.pending {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .customer-form-step-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .customer-form-step.pending .customer-form-step-icon {
+      background: #e3e8ee;
+      color: #697386;
+    }
+
+    .customer-form-step.active .customer-form-step-icon {
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .customer-form-step.completed .customer-form-step-icon {
+      background: #0d9488;
+      color: #fff;
+    }
+
+    .customer-form-step-label {
+      font-size: 0.88rem;
+      color: #3c4257;
+    }
+
+    .customer-form-step.active .customer-form-step-label {
+      font-weight: 600;
+      color: #0a2540;
+    }
+
+    .customer-form-step.completed .customer-form-step-label {
+      color: #0d9488;
+    }
+
+    .customer-form-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .customer-form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .customer-form-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .customer-form-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f6f8fa;
+      border-radius: 50%;
+      font-size: 1.25rem;
+      color: #697386;
+      cursor: pointer;
+    }
+
+    .customer-form-close:hover {
+      background: #e3e8ee;
+    }
+
+    .customer-form-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+
+    .customer-form-section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #0a2540;
+      margin-bottom: 0.5rem;
+    }
+
+    .customer-form-section-desc {
+      font-size: 0.85rem;
+      color: #697386;
+      margin-bottom: 1.5rem;
+    }
+
+    .customer-form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .customer-form-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .customer-form-field.half {
+      flex: 0 0 calc(50% - 0.5rem);
+    }
+
+    .customer-form-field label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #3c4257;
+      margin-bottom: 0.4rem;
+    }
+
+    .customer-form-field label .required {
+      color: #df1b41;
+    }
+
+    .customer-form-field input,
+    .customer-form-field select {
+      padding: 0.7rem 0.85rem;
+      border: 1px solid #d3d8de;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #1a1a1a;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .customer-form-field input:focus,
+    .customer-form-field select:focus {
+      border-color: #1a1a1a;
+      box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+    }
+
+    .customer-form-field input.error,
+    .customer-form-field select.error {
+      border-color: #df1b41;
+    }
+
+    .customer-form-field .field-error {
+      font-size: 0.75rem;
+      color: #df1b41;
+      margin-top: 0.3rem;
+    }
+
+    .customer-form-field .field-hint {
+      font-size: 0.75rem;
+      color: #697386;
+      margin-top: 0.3rem;
+    }
+
+    .customer-form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid #e3e8ee;
+      background: #f6f8fa;
+    }
+
+    .customer-form-back {
+      font-size: 0.88rem;
+      color: #697386;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    .customer-form-back:hover {
+      color: #3c4257;
+    }
+
+    .customer-form-continue {
+      padding: 0.75rem 2rem;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .customer-form-continue:hover {
+      background: #333;
+    }
+
+    .customer-form-continue:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .customer-form-divider {
+      height: 1px;
+      background: #e3e8ee;
+      margin: 1.5rem 0;
+    }
+
+    .customer-form-review-section {
+      background: #f6f8fa;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .customer-form-review-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #697386;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .customer-form-review-edit {
+      font-size: 0.78rem;
+      color: #1a1a1a;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: normal;
+      font-weight: 500;
+    }
+
+    .customer-form-review-edit:hover {
+      text-decoration: underline;
+    }
+
+    .customer-form-review-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      padding: 0.25rem 0;
+    }
+
+    .customer-form-review-label {
+      color: #697386;
+    }
+
+    .customer-form-review-value {
+      color: #0a2540;
+      font-weight: 500;
+    }
+
+    .customer-form-terms {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #fff;
+      border: 1px solid #e3e8ee;
+      border-radius: 8px;
+    }
+
+    .customer-form-terms input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-top: 0.1rem;
+      accent-color: #1a1a1a;
+      cursor: pointer;
+    }
+
+    .customer-form-terms-text {
+      font-size: 0.85rem;
+      color: #3c4257;
+      line-height: 1.5;
+    }
 
     /* ===================== PRODUCT DETAIL MODAL ===================== */
 
@@ -773,6 +1395,16 @@
       margin-bottom: 1.2rem;
     }
 
+    .modal-badge.in-stock {
+      background: #eef7ee;
+      color: #2d7a2d;
+    }
+
+    .modal-badge.ships {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
     .add-to-order-btn {
       width: 100%;
       padding: 0.9rem;
@@ -794,6 +1426,1460 @@
     .add-to-order-btn:active {
       background: #333;
     }
+
+    /* ===================== MODAL TRANSITIONS ===================== */
+
+    .modal-details-inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      animation: modalSlideIn 0.35s ease forwards;
+    }
+
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes modalSlideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(-40px); }
+    }
+
+    /* ===================== PRICING VIEW ===================== */
+
+    .pricing-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      animation: modalSlideIn 0.35s ease forwards;
+    }
+
+    .pricing-header {
+      margin-bottom: 0.3rem;
+      flex-shrink: 0;
+    }
+
+    .pricing-product-name {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 600;
+      font-size: 1.5rem;
+      color: #1a1a1a;
+      line-height: 1.25;
+      margin-bottom: 0.25rem;
+    }
+
+    .pricing-subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      font-weight: 400;
+    }
+
+    .pricing-cards {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      margin: 1rem 0;
+      overflow-y: auto;
+    }
+
+    .pricing-card {
+      border: 1.5px solid rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      padding: 1.1rem 1.3rem;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+    }
+
+    .pricing-card:active {
+      transform: scale(0.98);
+    }
+
+    .pricing-card:hover {
+      border-color: rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    .pricing-card.best-value {
+      border-color: #1a1a1a;
+      background: #fafaf8;
+    }
+
+    .pricing-card.selected {
+      border-color: #1a1a1a;
+      background: #1a1a1a;
+    }
+
+    .pricing-card.selected .pricing-card-label,
+    .pricing-card.selected .pricing-card-amount {
+      color: #fff;
+    }
+
+    .pricing-card.selected .pricing-card-detail,
+    .pricing-card.selected .pricing-card-period {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .pricing-card.selected .pricing-card-down {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .pricing-card.selected .pricing-card-badge {
+      background: #fff;
+      color: #1a1a1a;
+    }
+
+    .add-to-order-btn.disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .pricing-card-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .pricing-card-label {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #1a1a1a;
+    }
+
+    .pricing-card-detail {
+      font-size: 0.78rem;
+      color: #888;
+      font-weight: 400;
+    }
+
+    .pricing-card-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: #1a1a1a;
+      color: #fff;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      margin-top: 0.3rem;
+      display: inline-block;
+      align-self: flex-start;
+    }
+
+    .pricing-card-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .pricing-card-amount {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #1a1a1a;
+      line-height: 1.1;
+    }
+
+    .pricing-card-period {
+      font-size: 0.72rem;
+      color: #888;
+      font-weight: 400;
+    }
+
+    .pricing-card-down {
+      font-size: 0.68rem;
+      color: #1a1a1a;
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+
+    .pricing-back-btn {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 12px;
+      border: 1.5px solid rgba(0, 0, 0, 0.12);
+      background: transparent;
+      color: #444;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.2s;
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+
+    .pricing-back-btn:active {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    /* ===================== PIN SCREEN ===================== */
+
+    #pinScreen {
+      position: fixed;
+      inset: 0;
+      background: #1a1a1a;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    #pinScreen.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .pin-back-btn {
+      position: absolute;
+      top: 1.5rem;
+      left: 1.5rem;
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.6);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.5rem 1.2rem;
+      border-radius: 100px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .pin-back-btn:active { background: rgba(255,255,255,0.05); }
+
+    .pin-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.4rem;
+    }
+
+    .pin-subtitle {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 2rem;
+    }
+
+    .pin-dots {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .pin-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+
+    .pin-dot.filled {
+      background: #fff;
+      border-color: #fff;
+    }
+
+    .pin-dots.shake {
+      animation: pinShake 0.4s ease;
+    }
+
+    .pin-dots.shake .pin-dot.filled {
+      background: #e74c3c;
+      border-color: #e74c3c;
+    }
+
+    @keyframes pinShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-12px); }
+      40% { transform: translateX(12px); }
+      60% { transform: translateX(-8px); }
+      80% { transform: translateX(8px); }
+    }
+
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      gap: 0.8rem;
+    }
+
+    .pin-key {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pin-key:active {
+      background: rgba(255,255,255,0.1);
+      transform: scale(0.95);
+    }
+
+    .pin-key.fn {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.5);
+      border-color: transparent;
+    }
+
+    .pin-key.fn:active {
+      color: #fff;
+    }
+
+    /* ===================== ADMIN SCREEN ===================== */
+
+    #adminScreen {
+      position: fixed;
+      inset: 0;
+      background: #f6f8fa;
+      z-index: 400;
+      display: flex;
+      flex-direction: row;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #3c4257;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #adminScreen.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .admin-sidebar {
+      width: 220px;
+      background: #0a2540;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .admin-sidebar-brand {
+      padding: 1.1rem 1rem 0.9rem;
+    }
+
+    .admin-sidebar-logo {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 0.1rem;
+      letter-spacing: -0.01em;
+    }
+
+    .admin-sidebar-sub {
+      font-size: 0.65rem;
+      color: rgba(255,255,255,0.35);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .admin-sidebar-nav {
+      flex: 1;
+      padding: 0.5rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .admin-nav-section {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.3);
+      padding: 1rem 0.65rem 0.35rem;
+    }
+
+    .admin-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.81rem;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: all 0.1s ease;
+      text-align: left;
+      width: 100%;
+      letter-spacing: -0.005em;
+    }
+
+    .admin-nav-item:hover {
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.9);
+    }
+
+    .admin-nav-item.active {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .admin-nav-item svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+
+    .admin-nav-item.active svg { opacity: 1; }
+
+    .admin-sidebar-footer {
+      padding: 0.6rem 0.5rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .admin-logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.45rem 0.65rem;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,0.4);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.81rem;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      text-align: left;
+    }
+
+    .admin-logout-btn:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.05); }
+
+    .admin-logout-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.5;
+    }
+
+    .admin-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+      background: #f6f8fa;
+    }
+
+    .admin-main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2rem;
+      background: #fff;
+      border-bottom: 1px solid #e3e8ee;
+      flex-shrink: 0;
+    }
+
+    .admin-main-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #0a2540;
+      letter-spacing: -0.02em;
+    }
+
+    .admin-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+    }
+
+    /* Product List */
+
+    .admin-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+    }
+
+    .admin-product-count {
+      font-size: 0.82rem;
+      color: #697386;
+    }
+
+    .admin-add-btn {
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      border: none;
+      background: #635bff;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+      letter-spacing: -0.005em;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.04);
+      transition: background 0.15s;
+    }
+
+    .admin-add-btn:hover { background: #5851e6; }
+    .admin-add-btn:active { background: #4d45d1; }
+
+    .admin-product-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+    }
+
+    .admin-product-table th {
+      text-align: left;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #697386;
+      background: #f6f8fa;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .admin-product-row {
+      background: #fff;
+      transition: background 0.1s;
+    }
+
+    .admin-product-row:hover { background: #f8f9fb; }
+
+    .admin-product-row td {
+      padding: 0.6rem 0.9rem;
+      font-size: 0.85rem;
+      color: #3c4257;
+      vertical-align: middle;
+      border-bottom: 1px solid #f0f2f5;
+    }
+
+    .admin-product-row td:first-child { border-radius: 0; }
+    .admin-product-row td:last-child { border-radius: 0; }
+
+    .admin-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #f6f8fa;
+      border: 1px solid #e3e8ee;
+    }
+
+    .admin-row-actions {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    .admin-edit-btn, .admin-delete-btn {
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      border: 1px solid #e3e8ee;
+      background: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      color: #3c4257;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+      transition: all 0.1s;
+    }
+
+    .admin-edit-btn:hover { background: #f6f8fa; }
+
+    .admin-delete-btn {
+      color: #df1b41;
+      border-color: rgba(223,27,65,0.2);
+    }
+
+    .admin-delete-btn:hover { background: #fef0f3; }
+
+    /* Add/Edit Form */
+
+    .admin-form {
+      max-width: 680px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 1.5rem 1.8rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+    }
+
+    .admin-form-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #0a2540;
+      margin-bottom: 1.2rem;
+      letter-spacing: -0.01em;
+    }
+
+    .admin-field {
+      margin-bottom: 0.9rem;
+    }
+
+    .admin-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #3c4257;
+      margin-bottom: 0.3rem;
+      letter-spacing: -0.005em;
+    }
+
+    .admin-field input,
+    .admin-field select,
+    .admin-field textarea {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e3e8ee;
+      border-radius: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.85rem;
+      color: #0a2540;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.03);
+    }
+
+    .admin-field input:focus,
+    .admin-field select:focus,
+    .admin-field textarea:focus {
+      border-color: #635bff;
+      box-shadow: 0 0 0 3px rgba(99,91,255,0.12), 0 1px 1px rgba(0,0,0,0.03);
+    }
+
+    .admin-field textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .admin-field-row {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .admin-field-row .admin-field { flex: 1; }
+
+    .admin-specs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .admin-spec-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .admin-spec-row input {
+      flex: 1;
+      padding: 0.45rem 0.65rem;
+      border: 1px solid #e3e8ee;
+      border-radius: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.8rem;
+      color: #0a2540;
+      background: #fff;
+      outline: none;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.03);
+    }
+
+    .admin-spec-row input:focus {
+      border-color: #635bff;
+      box-shadow: 0 0 0 3px rgba(99,91,255,0.12);
+    }
+
+    .admin-spec-remove {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      border: 1px solid rgba(223,27,65,0.2);
+      background: transparent;
+      color: #df1b41;
+      font-size: 1rem;
+      cursor: pointer;
+      touch-action: manipulation;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s;
+    }
+
+    .admin-spec-remove:hover { background: #fef0f3; }
+
+    .admin-spec-add {
+      padding: 0.35rem 0.9rem;
+      border-radius: 6px;
+      border: 1px dashed #d3d8de;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #697386;
+      cursor: pointer;
+      touch-action: manipulation;
+      align-self: flex-start;
+      transition: all 0.1s;
+    }
+
+    .admin-spec-add:hover { border-color: #635bff; color: #635bff; }
+
+    .admin-categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+    }
+
+    .admin-category-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      color: #3c4257;
+      cursor: pointer;
+    }
+
+    .admin-category-checkbox input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #635bff;
+      cursor: pointer;
+    }
+
+    .admin-stock-options {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .admin-radio-option {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      color: #3c4257;
+      cursor: pointer;
+    }
+
+    .admin-radio-option input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #635bff;
+      cursor: pointer;
+    }
+
+    /* ---- Price Calculator ---- */
+    .calc-container {
+      max-width: 100%;
+    }
+
+    .calc-input-section {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      margin-bottom: 1.5rem;
+    }
+
+    .calc-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #0a2540;
+      margin-bottom: 1rem;
+    }
+
+    .calc-input-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .calc-dollar {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #697386;
+    }
+
+    .calc-input-row input {
+      flex: 1;
+      max-width: 200px;
+      padding: 0.75rem 1rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      border: 1px solid #d3d8de;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .calc-input-row input:focus {
+      border-color: #635bff;
+      box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+    }
+
+    .calc-btn {
+      padding: 0.75rem 1.5rem;
+      background: #635bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .calc-btn:hover {
+      background: #5851e6;
+    }
+
+    .calc-hint {
+      font-size: 0.78rem;
+      color: #697386;
+      margin-top: 0.6rem;
+    }
+
+    .calc-error {
+      background: #fef0f3;
+      color: #df1b41;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    .calc-results-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .calc-result-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+    }
+
+    .calc-result-card.buy-now {
+      background: linear-gradient(135deg, #635bff 0%, #8b5cf6 100%);
+    }
+
+    .calc-result-card.buy-now .calc-result-label,
+    .calc-result-card.buy-now .calc-essential-value,
+    .calc-result-card.buy-now .calc-essential-label {
+      color: #fff;
+    }
+
+    .calc-result-card.buy-now .calc-details summary {
+      color: rgba(255,255,255,0.8);
+    }
+
+    .calc-result-card.buy-now .calc-details-content {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    .calc-result-card.buy-now .calc-breakdown-row {
+      color: rgba(255,255,255,0.9);
+    }
+
+    .calc-result-card.buy-now .calc-breakdown-row.total {
+      color: #fff;
+      border-top-color: rgba(255,255,255,0.3);
+    }
+
+    .calc-result-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #697386;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .calc-essentials {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .calc-essential-item {
+      text-align: center;
+    }
+
+    .calc-essential-item.full {
+      padding: 0.5rem 0;
+    }
+
+    .calc-essential-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #0a2540;
+      line-height: 1.1;
+    }
+
+    .calc-mo {
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.7;
+    }
+
+    .calc-essential-label {
+      font-size: 0.75rem;
+      color: #697386;
+      margin-top: 0.25rem;
+    }
+
+    .calc-details {
+      border-top: 1px solid #e3e8ee;
+      padding-top: 0.75rem;
+    }
+
+    .calc-result-card.buy-now .calc-details {
+      border-top-color: rgba(255,255,255,0.2);
+    }
+
+    .calc-details summary {
+      font-size: 0.75rem;
+      color: #697386;
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+    }
+
+    .calc-details summary:hover {
+      color: #635bff;
+    }
+
+    .calc-details[open] summary {
+      margin-bottom: 0.75rem;
+    }
+
+    .calc-details-content {
+      background: #f6f8fa;
+      border-radius: 6px;
+      padding: 0.75rem;
+    }
+
+    .calc-breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #3c4257;
+      padding: 0.2rem 0;
+    }
+
+    .calc-breakdown-row.total {
+      border-top: 1px solid #e3e8ee;
+      margin-top: 0.3rem;
+      padding-top: 0.4rem;
+      font-weight: 600;
+      color: #0a2540;
+    }
+
+    /* ---- Admin Orders ---- */
+    .admin-refresh-btn {
+      padding: 0.5rem 1rem;
+      background: #fff;
+      border: 1px solid #d3d8de;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #3c4257;
+      cursor: pointer;
+    }
+
+    .admin-refresh-btn:hover {
+      background: #f6f8fa;
+    }
+
+    .admin-orders-list {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+
+    .admin-order-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #e3e8ee;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .admin-order-row:last-child {
+      border-bottom: none;
+    }
+
+    .admin-order-row:hover {
+      background: #f6f8fa;
+    }
+
+    .admin-order-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .admin-order-number {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #0a2540;
+      font-family: monospace;
+    }
+
+    .admin-order-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.78rem;
+      color: #697386;
+      margin-top: 0.2rem;
+    }
+
+    .admin-order-info {
+      text-align: right;
+    }
+
+    .admin-order-total {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #0a2540;
+    }
+
+    .admin-order-time {
+      font-size: 0.75rem;
+      color: #697386;
+    }
+
+    .admin-order-status {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .admin-order-status.pending {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .admin-order-status.processing {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .admin-order-status.completed {
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .admin-order-status.cancelled {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .admin-order-view {
+      padding: 0.4rem 0.8rem;
+      background: #635bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .admin-order-view:hover {
+      background: #5851e6;
+    }
+
+    .order-detail-box {
+      background: #fff;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .order-detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .order-detail-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0a2540;
+      font-family: monospace;
+    }
+
+    .order-detail-time {
+      font-size: 0.8rem;
+      color: #697386;
+      margin-top: 0.2rem;
+    }
+
+    .order-detail-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f6f8fa;
+      border-radius: 50%;
+      font-size: 1.25rem;
+      color: #697386;
+      cursor: pointer;
+    }
+
+    .order-detail-close:hover {
+      background: #e3e8ee;
+    }
+
+    .order-detail-status-row {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      background: #f6f8fa;
+      align-items: center;
+    }
+
+    .order-detail-status {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 5px;
+      text-transform: uppercase;
+    }
+
+    .order-detail-status.pending {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .order-detail-status.processing {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .order-detail-status.completed {
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .order-detail-status.cancelled {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .order-detail-delivery {
+      font-size: 0.85rem;
+      color: #3c4257;
+    }
+
+    .order-detail-section {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .order-detail-section-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #697386;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+    }
+
+    .order-detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+    }
+
+    .order-detail-item + .order-detail-item {
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .order-detail-item-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: #0a2540;
+    }
+
+    .order-detail-item-plan {
+      font-size: 0.8rem;
+      color: #697386;
+    }
+
+    .order-detail-item-price {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #0a2540;
+    }
+
+    .order-detail-customer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.25rem 1.5rem;
+    }
+
+    .order-detail-customer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .order-detail-customer-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #697386;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-top: 0.5rem;
+    }
+
+    .order-detail-customer-label:first-child {
+      margin-top: 0;
+    }
+
+    .order-detail-customer-value {
+      font-size: 0.88rem;
+      color: #0a2540;
+    }
+
+    .order-detail-totals {
+      padding: 1rem 1.5rem;
+      background: #f6f8fa;
+    }
+
+    .order-detail-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      color: #3c4257;
+      padding: 0.25rem 0;
+    }
+
+    .order-detail-total-row.final {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0a2540;
+      padding-top: 0.6rem;
+      margin-top: 0.4rem;
+      border-top: 1px solid #e3e8ee;
+    }
+
+    .order-detail-actions {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1.25rem 1.5rem;
+    }
+
+    .order-status-select {
+      flex: 1;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #d3d8de;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #3c4257;
+      background: #fff;
+    }
+
+    .order-status-save {
+      padding: 0.6rem 1.25rem;
+      background: #635bff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .order-status-save:hover {
+      background: #5851e6;
+    }
+
+    .admin-form-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 1.3rem;
+      padding-top: 1.3rem;
+      border-top: 1px solid #e3e8ee;
+    }
+
+    .admin-save-btn {
+      padding: 0.5rem 1.4rem;
+      border-radius: 6px;
+      border: none;
+      background: #635bff;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+      transition: background 0.15s;
+      letter-spacing: -0.005em;
+    }
+
+    .admin-save-btn:hover { background: #5851e6; }
+    .admin-save-btn:active { background: #4d45d1; }
+
+    .admin-cancel-btn {
+      padding: 0.5rem 1.4rem;
+      border-radius: 6px;
+      border: 1px solid #e3e8ee;
+      background: #fff;
+      color: #3c4257;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+      transition: background 0.1s;
+      letter-spacing: -0.005em;
+    }
+
+    .admin-cancel-btn:hover { background: #f6f8fa; }
+
+    /* Delete Confirm Overlay */
+
+    .admin-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,37,64,0.45);
+      z-index: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+
+    .admin-confirm-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.6rem 2rem;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.04);
+    }
+
+    .admin-confirm-title {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #0a2540;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.01em;
+    }
+
+    .admin-confirm-msg {
+      font-size: 0.85rem;
+      color: #697386;
+      margin-bottom: 1.3rem;
+      line-height: 1.55;
+    }
+
+    .admin-confirm-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .admin-confirm-delete {
+      padding: 0.5rem 1.2rem;
+      border-radius: 6px;
+      border: none;
+      background: #df1b41;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+      transition: background 0.15s;
+    }
+
+    .admin-confirm-delete:hover { background: #c91538; }
+
+    .admin-confirm-cancel {
+      padding: 0.5rem 1.2rem;
+      border-radius: 6px;
+      border: 1px solid #e3e8ee;
+      background: #fff;
+      color: #3c4257;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+      transition: background 0.1s;
+    }
+
+    .admin-confirm-cancel:hover { background: #f6f8fa; }
 
   </style>
 </head>
@@ -842,10 +2928,10 @@
         </div>
         <div class="order-footer" id="orderFooter">
           <div class="order-subtotal">
-            <span class="order-subtotal-label">Subtotal</span>
+            <span class="order-subtotal-label">Due Today</span>
             <span class="order-subtotal-value" id="orderSubtotal">$0</span>
           </div>
-          <button class="order-clear-btn" id="orderClearBtn">Clear Order</button>
+          <button class="order-confirm-btn" id="orderConfirmBtn">Confirm Order</button>
         </div>
       </div>
     </div>
@@ -859,9 +2945,97 @@
     </div>
   </div>
 
+  <!-- =================== PIN SCREEN =================== -->
+  <div id="pinScreen">
+    <button class="pin-back-btn" id="pinBackBtn">Back</button>
+    <div class="pin-title">Employee Login</div>
+    <div class="pin-subtitle">Enter your 6-digit PIN</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+    <div class="pin-keypad" id="pinKeypad">
+      <button class="pin-key" data-val="1">1</button>
+      <button class="pin-key" data-val="2">2</button>
+      <button class="pin-key" data-val="3">3</button>
+      <button class="pin-key" data-val="4">4</button>
+      <button class="pin-key" data-val="5">5</button>
+      <button class="pin-key" data-val="6">6</button>
+      <button class="pin-key" data-val="7">7</button>
+      <button class="pin-key" data-val="8">8</button>
+      <button class="pin-key" data-val="9">9</button>
+      <button class="pin-key fn" data-val="clear">CLR</button>
+      <button class="pin-key" data-val="0">0</button>
+      <button class="pin-key fn" data-val="back">&larr;</button>
+    </div>
+  </div>
+
+  <!-- =================== ADMIN SCREEN =================== -->
+  <div id="adminScreen">
+    <div class="admin-sidebar">
+      <div class="admin-sidebar-brand">
+        <div class="admin-sidebar-logo">Furniture Hub</div>
+        <div class="admin-sidebar-sub">Admin Panel</div>
+      </div>
+      <div class="admin-sidebar-nav">
+        <button class="admin-nav-item active" data-page="dashboard">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </button>
+        <button class="admin-nav-item" data-page="orders">
+          <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          Orders
+        </button>
+        <button class="admin-nav-item" data-page="products">
+          <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          Products
+        </button>
+        <button class="admin-nav-item" data-page="calculator">
+          <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="16" y2="18"/></svg>
+          Price Calculator
+        </button>
+        <div class="admin-nav-section">Payments</div>
+        <button class="admin-nav-item" data-page="terminal">
+          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="12" x2="6" y2="12.01"/><line x1="10" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="10" y2="16"/></svg>
+          Terminal
+        </button>
+        <div class="admin-nav-section">Settings</div>
+        <button class="admin-nav-item" data-page="store">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Store Settings
+        </button>
+      </div>
+      <div class="admin-sidebar-footer">
+        <button class="admin-logout-btn" id="adminLogoutBtn">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </button>
+      </div>
+    </div>
+    <div class="admin-main">
+      <div class="admin-main-header">
+        <div class="admin-main-title" id="adminPageTitle">Dashboard</div>
+        <div id="adminHeaderActions"></div>
+      </div>
+      <div class="admin-body" id="adminBody"></div>
+    </div>
+  </div>
 
   <script>
-    const imageFiles = [
+    // =================== SUPABASE CONFIG ===================
+    const SUPABASE_URL = 'https://vgvsrkewfrzcqrkfdwxo.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZndnNya2V3ZnJ6Y3Fya2Zkd3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTA3NzIsImV4cCI6MjA5MTA2Njc3Mn0.3kvZTVPSWiZv4tdMwZEFqC9IWd2XEm5aEqqQSrTMbzY';
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZndnNya2V3ZnJ6Y3Fya2Zkd3hvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ5MDc3MiwiZXhwIjoyMDkxMDY2NzcyfQ.BadZUZbj4xvOXn4_WwiEarZRKQ3gDzgBtGsrs11KjQI';
+
+    const sbPublic = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sbAdmin = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // =================== SPLASH SCREEN IMAGES (hardcoded for instant display) ===================
+    const splashImageFiles = [
       'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_35_18 PM.png',
       'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_35_37 PM.png',
       'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_36_04 PM.png',
@@ -876,50 +3050,55 @@
       'PRODUCT PHOTOS/d9b5b4af-53b5-405a-bbed-06078f3f1f7d.png'
     ];
 
-    const products = [
-      { id: 1, name: 'Hudson Accent Chair', category: 'Living Room', price: 849, image: imageFiles[0],
-        description: 'Sink into the Hudson Accent Chair, upholstered in a rich charcoal fabric with clean modern lines. Tapered solid wood legs and plush cushioning make it the perfect reading nook companion.',
-        specs: [['Dimensions','34"W x 35"D x 33"H'],['Material','Polyester blend fabric'],['Frame','Kiln-dried hardwood'],['Color','Charcoal Black'],['Weight Capacity','300 lbs'],['Assembly','Legs only']], badge: 'In Stock - Ready to Ship' },
-      { id: 2, name: 'Maplewood Round Coffee Table', category: 'Living Room', price: 599, image: imageFiles[1],
-        description: 'The Maplewood Round Coffee Table features a warm natural oak finish with a spacious lower shelf for books and decor. Its rounded silhouette softens any living space.',
-        specs: [['Dimensions','42" diameter x 18"H'],['Material','Solid oak veneer'],['Finish','Natural matte'],['Lower Shelf','Yes'],['Weight','45 lbs'],['Assembly','Required']], badge: 'In Stock - Ready to Ship' },
-      { id: 3, name: 'Hartley Rectangular Coffee Table', category: 'Living Room', price: 549, image: imageFiles[2],
-        description: 'A versatile rectangular coffee table crafted from natural oak with a generous lower shelf. Clean lines and warm tones make the Hartley a timeless centerpiece for your living room.',
-        specs: [['Dimensions','48"W x 26"D x 18"H'],['Material','Solid oak with veneer top'],['Finish','Natural satin'],['Lower Shelf','Yes'],['Weight','52 lbs'],['Assembly','Required']], badge: 'In Stock - Ready to Ship' },
-      { id: 4, name: 'Brookfield TV Console', category: 'Living Room', price: 1249, image: imageFiles[3],
-        description: 'The Brookfield TV Console accommodates up to 75" screens with two paneled cabinet doors, open shelving, and two drawers for hidden storage. Crafted from solid oak with matte black hardware.',
-        specs: [['Dimensions','72"W x 18"D x 24"H'],['Material','Solid oak'],['Finish','Natural oak'],['Storage','2 cabinets, 3 shelves, 2 drawers'],['Max TV Size','75"'],['Assembly','Minimal']], badge: 'Best Seller' },
-      { id: 5, name: 'Elara Upholstered Bed Frame', category: 'Bedroom', price: 1399, image: imageFiles[4],
-        description: 'The Elara bed frame pairs a solid oak frame with a linen-upholstered headboard for a warm, inviting look. Sturdy slat support means no box spring needed. Available in Queen and King.',
-        specs: [['Size','Queen (shown)'],['Dimensions','65"W x 86"D x 48"H'],['Frame','Solid oak'],['Headboard','Linen upholstered'],['Slats','Included'],['Box Spring','Not required']], badge: 'In Stock - Ready to Ship' },
-      { id: 6, name: 'Camden 2-Drawer Nightstand', category: 'Bedroom', price: 349, image: imageFiles[5],
-        description: 'The Camden Nightstand keeps your bedside essentials organized with two smooth-gliding drawers and a spacious tabletop. Solid oak construction with matte black knobs.',
-        specs: [['Dimensions','22"W x 16"D x 26"H'],['Material','Solid oak'],['Drawers','2 with metal glides'],['Hardware','Matte black knobs'],['Weight','35 lbs'],['Assembly','Required']], badge: 'In Stock - Ready to Ship' },
-      { id: 7, name: 'Ashford 6-Drawer Dresser', category: 'Bedroom', price: 1099, image: imageFiles[6],
-        description: 'The Ashford Dresser offers generous storage with six full-width drawers on smooth metal glides. Clean shaker-style lines in natural oak complement any bedroom.',
-        specs: [['Dimensions','60"W x 18"D x 34"H'],['Material','Solid oak'],['Drawers','6 with metal glides'],['Hardware','Matte black knobs'],['Weight','120 lbs'],['Assembly','Minimal']], badge: 'Best Seller' },
-      { id: 8, name: '55" 4K Smart Television', category: 'Living Room', price: 429, image: imageFiles[7],
-        description: 'Crystal-clear 4K UHD display with HDR10 support, built-in smart TV platform, and sleek bezel-less design. Perfect paired with our Brookfield TV Console.',
-        specs: [['Screen Size','55"'],['Resolution','4K UHD (3840x2160)'],['HDR','HDR10'],['Smart TV','Yes - Built-in'],['Ports','3x HDMI, 2x USB'],['Stand Width','48"']], badge: 'In Stock - Ready to Ship' },
-      { id: 9, name: 'Xbox Series S Console', category: 'Gaming', price: 299, image: imageFiles[8],
-        description: 'Next-gen gaming in the smallest Xbox ever. Includes wireless controller, 512GB SSD, and access to thousands of games. The perfect addition to any entertainment setup.',
-        specs: [['Storage','512GB SSD'],['Resolution','Up to 1440p'],['FPS','Up to 120fps'],['Includes','Console + Wireless Controller'],['Color','Robot White'],['Connectivity','Wi-Fi, Bluetooth, HDMI 2.1']], badge: 'In Stock - Ready to Ship' },
-      { id: 10, name: 'Oakwood Dining Table', category: 'Dining', price: 899, image: imageFiles[9],
-        description: 'Gather around the Oakwood Dining Table, crafted from solid oak with a clean, minimalist profile. Comfortably seats six. The warm honey tone brightens any dining space.',
-        specs: [['Dimensions','72"W x 36"D x 30"H'],['Material','Solid oak'],['Finish','Honey natural'],['Seating','Up to 6'],['Weight','85 lbs'],['Assembly','Legs only']], badge: 'In Stock - Ready to Ship' },
-      { id: 11, name: 'Whitaker Writing Desk', category: 'Office', price: 649, image: imageFiles[10],
-        description: 'The Whitaker Writing Desk features a generous work surface with three storage drawers on smooth metal glides. Solid oak construction built to last for years of daily use.',
-        specs: [['Dimensions','54"W x 24"D x 30"H'],['Material','Solid oak'],['Drawers','3 with metal glides'],['Hardware','Matte black knobs'],['Weight','68 lbs'],['Assembly','Required']], badge: 'New Arrival' },
-      { id: 12, name: 'Hudson 3-Seat Sofa', category: 'Living Room', price: 1599, image: imageFiles[11],
-        description: 'The flagship of the Hudson collection. This generous 3-seat sofa features deep cushions, tapered legs, and durable charcoal upholstery. Pairs perfectly with the Hudson Accent Chair.',
-        specs: [['Dimensions','84"W x 36"D x 33"H'],['Material','Polyester blend fabric'],['Frame','Kiln-dried hardwood'],['Cushions','High-resilience foam'],['Color','Charcoal Black'],['Assembly','Legs only']], badge: 'Best Seller' }
-    ];
-
-    const categories = ['All', 'Living Room', 'Bedroom', 'Dining', 'Office', 'Gaming'];
+    // =================== PRODUCTS DATA (loaded from Supabase) ===================
+    let products = [];
+    let categories = ['All'];
     let activeCategory = 'All';
+    let dataLoaded = false;
+
+    async function loadProducts() {
+      const { data, error } = await sbPublic.from('products').select('*').order('id');
+      if (error) {
+        console.error('Error loading products:', error);
+        return;
+      }
+      products = data.map(p => ({
+        ...p,
+        image: p.image_url,
+        specs: p.specs || [],
+        categories: p.categories || []
+      }));
+      const allCats = products.flatMap(p => {
+        if (Array.isArray(p.categories) && p.categories.length > 0) return p.categories;
+        return [p.category];
+      });
+      const uniqueCats = [...new Set(allCats)].filter(Boolean);
+      categories = ['All', ...uniqueCats];
+      dataLoaded = true;
+    }
 
     function formatPrice(n) {
       return '$' + n.toLocaleString('en-US');
+    }
+
+    const plans = [
+      { key: 'now',  label: 'Buy Now',       markup: 2.0,  months: 0  },
+      { key: '1yr',  label: '12-Month Plan',  markup: 2.5,  months: 12 },
+      { key: '2yr',  label: '24-Month Plan',  markup: 3.0,  months: 24 },
+      { key: '3yr',  label: '36-Month Plan',  markup: 3.5,  months: 36 }
+    ];
+
+    function getPlanPrice(cost, plan) {
+      const total = Math.round(cost * plan.markup);
+      if (plan.months === 0) return { total, monthly: null, downPayment: total };
+      const downPayment = Math.round(total * 0.10);
+      const remaining = total - downPayment;
+      return { total, monthly: Math.round(remaining / plan.months), downPayment };
+    }
+
+    function getLowestMonthly(cost) {
+      const longest = plans[plans.length - 1];
+      return getPlanPrice(cost, longest).monthly;
     }
 
     // =================== ORDER STATE ===================
@@ -927,29 +3106,37 @@
     let orderItems = [];
     let sidebarOpen = false;
 
-    function addToOrder(product) {
-      const existing = orderItems.find(item => item.product.id === product.id);
+    function addToOrder(product, plan) {
+      const pricing = getPlanPrice(product.cost, plan);
+      const downPayment = pricing.downPayment;
+      const displayPrice = plan.months === 0 ? pricing.total : pricing.monthly;
+      const planLabel = plan.months === 0
+        ? formatPrice(pricing.total) + ' total'
+        : formatPrice(pricing.monthly) + '/mo \u00d7 ' + plan.months;
+      const itemKey = product.id + '-' + plan.key;
+
+      const existing = orderItems.find(item => item.itemKey === itemKey);
       if (existing) {
         existing.quantity++;
       } else {
-        orderItems.push({ product, quantity: 1 });
+        orderItems.push({ product, plan, itemKey, displayPrice, downPayment, planLabel, quantity: 1 });
       }
       if (!sidebarOpen) toggleSidebar(true);
       renderOrder();
     }
 
-    function removeFromOrder(productId) {
-      orderItems = orderItems.filter(item => item.product.id !== productId);
+    function removeFromOrder(itemKey) {
+      orderItems = orderItems.filter(item => item.itemKey !== itemKey);
       renderOrder();
       if (orderItems.length === 0) toggleSidebar(false);
     }
 
-    function updateQuantity(productId, delta) {
-      const item = orderItems.find(item => item.product.id === productId);
+    function updateQuantity(itemKey, delta) {
+      const item = orderItems.find(item => item.itemKey === itemKey);
       if (!item) return;
       item.quantity += delta;
       if (item.quantity <= 0) {
-        removeFromOrder(productId);
+        removeFromOrder(itemKey);
         return;
       }
       renderOrder();
@@ -961,8 +3148,8 @@
       toggleSidebar(false);
     }
 
-    function getSubtotal() {
-      return orderItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    function getDueToday() {
+      return orderItems.reduce((sum, item) => sum + item.downPayment * item.quantity, 0);
     }
 
     function getTotalItems() {
@@ -976,40 +3163,43 @@
       const total = getTotalItems();
 
       countEl.textContent = total + ' item' + (total !== 1 ? 's' : '');
-      subtotalEl.textContent = formatPrice(getSubtotal());
+      subtotalEl.textContent = formatPrice(getDueToday());
 
       if (orderItems.length === 0) {
         container.innerHTML = '<div class="order-empty">No items added yet</div>';
         return;
       }
 
-      container.innerHTML = orderItems.map(item => `
+      container.innerHTML = orderItems.map(item => {
+        const isBuyNow = item.plan.months === 0;
+        return `
         <div class="order-item">
           <img class="order-item-img" src="${encodeURI(item.product.image)}" alt="${item.product.name}">
           <div class="order-item-details">
             <div class="order-item-name">${item.product.name}</div>
-            <div class="order-item-price">${formatPrice(item.product.price)} each</div>
+            <div class="order-item-price">${item.planLabel}</div>
+            <div class="order-item-down">${isBuyNow ? 'Paid in full' : formatPrice(item.downPayment) + ' down today'}</div>
           </div>
           <div class="order-item-qty">
-            <button class="qty-btn" data-id="${item.product.id}" data-delta="-1">&minus;</button>
+            <button class="qty-btn" data-key="${item.itemKey}" data-delta="-1">&minus;</button>
             <span class="qty-val">${item.quantity}</span>
-            <button class="qty-btn" data-id="${item.product.id}" data-delta="1">+</button>
+            <button class="qty-btn" data-key="${item.itemKey}" data-delta="1">+</button>
           </div>
-          <button class="order-item-remove" data-id="${item.product.id}">&times;</button>
+          <button class="order-item-remove" data-key="${item.itemKey}">&times;</button>
         </div>
-      `).join('');
+      `}).join('');
 
       container.querySelectorAll('.qty-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          updateQuantity(Number(btn.dataset.id), Number(btn.dataset.delta));
+          updateQuantity(btn.dataset.key, Number(btn.dataset.delta));
         });
       });
 
       container.querySelectorAll('.order-item-remove').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          removeFromOrder(Number(btn.dataset.id));
+          removeFromOrder(btn.dataset.key);
         });
       });
     }
@@ -1027,9 +3217,803 @@
       }
     }
 
-    document.getElementById('orderClearBtn').addEventListener('click', () => {
-      clearOrder();
+    document.getElementById('orderConfirmBtn').addEventListener('click', () => {
+      if (orderItems.length === 0) return;
+      showOrderReview();
     });
+
+    function showOrderReview() {
+      const baseTotal = getDueToday();
+      let deliverySelected = false;
+
+      const itemsHTML = orderItems.map(item => {
+        const isBuyNow = item.plan.months === 0;
+        const itemTotal = item.downPayment * item.quantity;
+        return `
+          <div class="review-item">
+            <img class="review-item-img" src="${encodeURI(item.product.image)}" alt="${item.product.name}">
+            <div class="review-item-details">
+              <div class="review-item-name">${item.product.name}</div>
+              <div class="review-item-plan">${item.planLabel}${item.quantity > 1 ? ' × ' + item.quantity : ''}</div>
+            </div>
+            <div class="review-item-due">
+              <div class="review-item-amount">${formatPrice(itemTotal)}</div>
+              <div class="review-item-due-label">${isBuyNow ? 'due today' : 'down today'}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const overlay = document.createElement('div');
+      overlay.className = 'order-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="order-review-box">
+          <div class="review-header">
+            <div class="review-title">Order Summary</div>
+            <button class="review-close" id="reviewClose">&times;</button>
+          </div>
+          <div class="review-items">${itemsHTML}</div>
+          <div class="review-delivery-section">
+            <div class="review-delivery-title">How would you like to receive your order?</div>
+            <div class="review-delivery-options">
+              <label class="review-delivery-option">
+                <input type="radio" name="deliveryMethod" value="pickup" checked>
+                <div class="review-option-content">
+                  <span class="review-option-label">Store Pickup</span>
+                  <span class="review-option-price">Free</span>
+                </div>
+              </label>
+              <label class="review-delivery-option">
+                <input type="radio" name="deliveryMethod" value="delivery">
+                <div class="review-option-content">
+                  <span class="review-option-label">Delivery</span>
+                  <span class="review-option-price">+$50</span>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div class="review-totals">
+            <div class="review-total-row">
+              <span>Subtotal</span>
+              <span id="reviewSubtotal">${formatPrice(baseTotal)}</span>
+            </div>
+            <div class="review-total-row" id="reviewDeliveryRow" style="display:none">
+              <span>Delivery</span>
+              <span>$50</span>
+            </div>
+            <div class="review-total-row final">
+              <span>Due Today</span>
+              <span id="reviewTotal">${formatPrice(baseTotal)}</span>
+            </div>
+          </div>
+          <button class="review-next-btn" id="reviewNextBtn">Next</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      document.getElementById('reviewClose').addEventListener('click', () => overlay.remove());
+
+      document.querySelectorAll('input[name="deliveryMethod"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          deliverySelected = radio.value === 'delivery';
+          document.getElementById('reviewDeliveryRow').style.display = deliverySelected ? 'flex' : 'none';
+          document.getElementById('reviewTotal').textContent = formatPrice(baseTotal + (deliverySelected ? 50 : 0));
+        });
+      });
+
+      document.getElementById('reviewNextBtn').addEventListener('click', () => {
+        overlay.remove();
+        showCustomerInfoForm(deliverySelected);
+      });
+    }
+
+    // =================== CUSTOMER INFO FORM ===================
+
+    const US_STATES = [
+      'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+      'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+      'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
+    ];
+
+    const formSections = [
+      { id: 'personal', label: 'Personal Info', icon: '1' },
+      { id: 'address', label: 'Address', icon: '2' },
+      { id: 'identification', label: 'ID Info', icon: '3' },
+      { id: 'employment', label: 'Employment', icon: '4' },
+      { id: 'references', label: 'References', icon: '5' },
+      { id: 'review', label: 'Review', icon: '6' }
+    ];
+
+    let customerFormData = {};
+    let currentFormSection = 0;
+    let deliveryForForm = false;
+
+    function showCustomerInfoForm(deliverySelected) {
+      deliveryForForm = deliverySelected;
+      customerFormData = {};
+      currentFormSection = 0;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'customer-form-overlay';
+      overlay.id = 'customerFormOverlay';
+      overlay.innerHTML = `
+        <div class="customer-form-container">
+          <div class="customer-form-sidebar">
+            <div class="customer-form-sidebar-title">Complete Your Application</div>
+            <div id="formSteps"></div>
+          </div>
+          <div class="customer-form-content">
+            <div class="customer-form-header">
+              <div class="customer-form-title" id="formSectionTitle">Personal Information</div>
+              <button class="customer-form-close" id="customerFormClose">&times;</button>
+            </div>
+            <div class="customer-form-body" id="formBody"></div>
+            <div class="customer-form-actions">
+              <button class="customer-form-back" id="formBack" style="visibility:hidden">&larr; Back</button>
+              <button class="customer-form-continue" id="formContinue">Continue</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      renderFormSteps();
+      renderFormSection();
+
+      document.getElementById('customerFormClose').addEventListener('click', () => {
+        if (confirm('Are you sure you want to cancel? Your information will not be saved.')) {
+          overlay.remove();
+        }
+      });
+
+      document.getElementById('formBack').addEventListener('click', () => {
+        if (currentFormSection > 0) {
+          currentFormSection--;
+          renderFormSteps();
+          renderFormSection();
+        }
+      });
+
+      document.getElementById('formContinue').addEventListener('click', async () => {
+        if (validateCurrentSection()) {
+          saveCurrentSection();
+          if (currentFormSection < formSections.length - 1) {
+            currentFormSection++;
+            renderFormSteps();
+            renderFormSection();
+          } else {
+            await submitFullOrder();
+          }
+        }
+      });
+    }
+
+    function renderFormSteps() {
+      const container = document.getElementById('formSteps');
+      container.innerHTML = formSections.map((section, idx) => {
+        let status = 'pending';
+        if (idx < currentFormSection) status = 'completed';
+        else if (idx === currentFormSection) status = 'active';
+
+        const icon = status === 'completed' ? '✓' : section.icon;
+
+        return `
+          <div class="customer-form-step ${status}" data-step="${idx}">
+            <div class="customer-form-step-icon">${icon}</div>
+            <div class="customer-form-step-label">${section.label}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.customer-form-step.completed').forEach(step => {
+        step.addEventListener('click', () => {
+          currentFormSection = Number(step.dataset.step);
+          renderFormSteps();
+          renderFormSection();
+        });
+      });
+    }
+
+    function renderFormSection() {
+      const backBtn = document.getElementById('formBack');
+      const continueBtn = document.getElementById('formContinue');
+      const titleEl = document.getElementById('formSectionTitle');
+
+      backBtn.style.visibility = currentFormSection === 0 ? 'hidden' : 'visible';
+      continueBtn.textContent = currentFormSection === formSections.length - 1 ? 'Submit Application' : 'Continue';
+
+      const section = formSections[currentFormSection];
+      titleEl.textContent = getSectionTitle(section.id);
+
+      switch (section.id) {
+        case 'personal': renderPersonalSection(); break;
+        case 'address': renderAddressSection(); break;
+        case 'identification': renderIdSection(); break;
+        case 'employment': renderEmploymentSection(); break;
+        case 'references': renderReferencesSection(); break;
+        case 'review': renderReviewSection(); break;
+      }
+    }
+
+    function getSectionTitle(sectionId) {
+      const titles = {
+        personal: 'Personal Information',
+        address: 'Your Address',
+        identification: 'Identification',
+        employment: 'Employment & Income',
+        references: 'References',
+        review: 'Review Your Application'
+      };
+      return titles[sectionId] || '';
+    }
+
+    function renderPersonalSection() {
+      const d = customerFormData;
+      document.getElementById('formBody').innerHTML = `
+        <div class="customer-form-section-desc">Please provide your personal details to get started.</div>
+        <div class="customer-form-row">
+          <div class="customer-form-field half">
+            <label>First Name <span class="required">*</span></label>
+            <input type="text" id="cf_firstName" value="${d.first_name || ''}" placeholder="John">
+          </div>
+          <div class="customer-form-field half">
+            <label>Last Name <span class="required">*</span></label>
+            <input type="text" id="cf_lastName" value="${d.last_name || ''}" placeholder="Doe">
+          </div>
+        </div>
+        <div class="customer-form-row">
+          <div class="customer-form-field half">
+            <label>Date of Birth <span class="required">*</span></label>
+            <input type="date" id="cf_dob" value="${d.date_of_birth || ''}" max="${getMaxDOB()}">
+            <div class="field-hint">Must be 18 or older</div>
+          </div>
+          <div class="customer-form-field half">
+            <label>Phone Number <span class="required">*</span></label>
+            <input type="tel" id="cf_phone" value="${d.phone || ''}" placeholder="(555) 123-4567">
+          </div>
+        </div>
+        <div class="customer-form-field">
+          <label>Email Address <span class="required">*</span></label>
+          <input type="email" id="cf_email" value="${d.email || ''}" placeholder="john.doe@example.com">
+        </div>
+      `;
+    }
+
+    function renderAddressSection() {
+      const d = customerFormData.address || {};
+      document.getElementById('formBody').innerHTML = `
+        <div class="customer-form-section-desc">${deliveryForForm ? 'This address will be used for delivery.' : 'Please provide your current residential address.'}</div>
+        <div class="customer-form-field">
+          <label>Street Address <span class="required">*</span></label>
+          <input type="text" id="cf_street" value="${d.street || ''}" placeholder="123 Main Street">
+        </div>
+        <div class="customer-form-field">
+          <label>Apartment, Suite, Unit (optional)</label>
+          <input type="text" id="cf_unit" value="${d.unit || ''}" placeholder="Apt 4B">
+        </div>
+        <div class="customer-form-row">
+          <div class="customer-form-field">
+            <label>City <span class="required">*</span></label>
+            <input type="text" id="cf_city" value="${d.city || ''}" placeholder="Tampa">
+          </div>
+          <div class="customer-form-field half">
+            <label>State <span class="required">*</span></label>
+            <select id="cf_state">
+              <option value="">Select...</option>
+              ${US_STATES.map(s => `<option value="${s}" ${d.state === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="customer-form-field half">
+            <label>ZIP Code <span class="required">*</span></label>
+            <input type="text" id="cf_zip" value="${d.zip || ''}" placeholder="33601" maxlength="10">
+          </div>
+        </div>
+      `;
+    }
+
+    function renderIdSection() {
+      const d = customerFormData.identification || {};
+      document.getElementById('formBody').innerHTML = `
+        <div class="customer-form-section-desc">We need a valid ID to verify your identity.</div>
+        <div class="customer-form-row">
+          <div class="customer-form-field">
+            <label>ID Type <span class="required">*</span></label>
+            <select id="cf_idType">
+              <option value="">Select ID type...</option>
+              <option value="drivers_license" ${d.type === 'drivers_license' ? 'selected' : ''}>Driver's License</option>
+              <option value="state_id" ${d.type === 'state_id' ? 'selected' : ''}>State ID</option>
+              <option value="passport" ${d.type === 'passport' ? 'selected' : ''}>Passport</option>
+              <option value="military_id" ${d.type === 'military_id' ? 'selected' : ''}>Military ID</option>
+            </select>
+          </div>
+        </div>
+        <div class="customer-form-row">
+          <div class="customer-form-field">
+            <label>ID Number <span class="required">*</span></label>
+            <input type="text" id="cf_idNumber" value="${d.number || ''}" placeholder="D123456789">
+          </div>
+          <div class="customer-form-field half">
+            <label>State/Country of Issue <span class="required">*</span></label>
+            <select id="cf_idState">
+              <option value="">Select...</option>
+              ${US_STATES.map(s => `<option value="${s}" ${d.state === s ? 'selected' : ''}>${s}</option>`).join('')}
+              <option value="OTHER" ${d.state === 'OTHER' ? 'selected' : ''}>Other Country</option>
+            </select>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEmploymentSection() {
+      const d = customerFormData.employment || {};
+      const showEmployer = d.status === 'employed' || d.status === 'self_employed';
+      document.getElementById('formBody').innerHTML = `
+        <div class="customer-form-section-desc">This helps us understand your ability to make payments.</div>
+        <div class="customer-form-row">
+          <div class="customer-form-field">
+            <label>Employment Status <span class="required">*</span></label>
+            <select id="cf_empStatus">
+              <option value="">Select...</option>
+              <option value="employed" ${d.status === 'employed' ? 'selected' : ''}>Employed</option>
+              <option value="self_employed" ${d.status === 'self_employed' ? 'selected' : ''}>Self-Employed</option>
+              <option value="retired" ${d.status === 'retired' ? 'selected' : ''}>Retired</option>
+              <option value="student" ${d.status === 'student' ? 'selected' : ''}>Student</option>
+              <option value="unemployed" ${d.status === 'unemployed' ? 'selected' : ''}>Unemployed</option>
+              <option value="other" ${d.status === 'other' ? 'selected' : ''}>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="customer-form-field" id="employerField" style="display:${showEmployer ? 'flex' : 'none'}">
+          <label>Employer Name <span class="required">*</span></label>
+          <input type="text" id="cf_employer" value="${d.employer || ''}" placeholder="ABC Company">
+        </div>
+        <div class="customer-form-row">
+          <div class="customer-form-field">
+            <label>Monthly Income <span class="required">*</span></label>
+            <select id="cf_income">
+              <option value="">Select range...</option>
+              <option value="0-1000" ${d.monthly_income === '0-1000' ? 'selected' : ''}>Under $1,000</option>
+              <option value="1000-2000" ${d.monthly_income === '1000-2000' ? 'selected' : ''}>$1,000 - $2,000</option>
+              <option value="2000-3000" ${d.monthly_income === '2000-3000' ? 'selected' : ''}>$2,000 - $3,000</option>
+              <option value="3000-4000" ${d.monthly_income === '3000-4000' ? 'selected' : ''}>$3,000 - $4,000</option>
+              <option value="4000-5000" ${d.monthly_income === '4000-5000' ? 'selected' : ''}>$4,000 - $5,000</option>
+              <option value="5000+" ${d.monthly_income === '5000+' ? 'selected' : ''}>$5,000+</option>
+            </select>
+          </div>
+          <div class="customer-form-field">
+            <label>Pay Frequency <span class="required">*</span></label>
+            <select id="cf_payFreq">
+              <option value="">Select...</option>
+              <option value="weekly" ${d.pay_frequency === 'weekly' ? 'selected' : ''}>Weekly</option>
+              <option value="bi-weekly" ${d.pay_frequency === 'bi-weekly' ? 'selected' : ''}>Bi-Weekly</option>
+              <option value="semi-monthly" ${d.pay_frequency === 'semi-monthly' ? 'selected' : ''}>Semi-Monthly</option>
+              <option value="monthly" ${d.pay_frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+            </select>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('cf_empStatus').addEventListener('change', (e) => {
+        const show = e.target.value === 'employed' || e.target.value === 'self_employed';
+        document.getElementById('employerField').style.display = show ? 'flex' : 'none';
+      });
+    }
+
+    function renderReferencesSection() {
+      const refs = customerFormData.references || [{}, {}];
+      const ref1 = refs[0] || {};
+      const ref2 = refs[1] || {};
+      document.getElementById('formBody').innerHTML = `
+        <div class="customer-form-section-desc">Please provide two personal references (not living with you).</div>
+        
+        <div style="font-weight:600;font-size:0.9rem;color:#0a2540;margin-bottom:0.75rem">Reference 1 <span class="required">*</span></div>
+        <div class="customer-form-row">
+          <div class="customer-form-field">
+            <label>Full Name <span class="required">*</span></label>
+            <input type="text" id="cf_ref1Name" value="${ref1.name || ''}" placeholder="Jane Smith">
+          </div>
+          <div class="customer-form-field half">
+            <label>Phone <span class="required">*</span></label>
+            <input type="tel" id="cf_ref1Phone" value="${ref1.phone || ''}" placeholder="(555) 987-6543">
+          </div>
+        </div>
+        <div class="customer-form-field">
+          <label>Relationship <span class="required">*</span></label>
+          <select id="cf_ref1Rel">
+            <option value="">Select...</option>
+            <option value="Friend" ${ref1.relationship === 'Friend' ? 'selected' : ''}>Friend</option>
+            <option value="Family" ${ref1.relationship === 'Family' ? 'selected' : ''}>Family Member</option>
+            <option value="Coworker" ${ref1.relationship === 'Coworker' ? 'selected' : ''}>Coworker</option>
+            <option value="Neighbor" ${ref1.relationship === 'Neighbor' ? 'selected' : ''}>Neighbor</option>
+            <option value="Other" ${ref1.relationship === 'Other' ? 'selected' : ''}>Other</option>
+          </select>
+        </div>
+
+        <div class="customer-form-divider"></div>
+
+        <div style="font-weight:600;font-size:0.9rem;color:#0a2540;margin-bottom:0.75rem">Reference 2 (optional)</div>
+        <div class="customer-form-row">
+          <div class="customer-form-field">
+            <label>Full Name</label>
+            <input type="text" id="cf_ref2Name" value="${ref2.name || ''}" placeholder="Bob Johnson">
+          </div>
+          <div class="customer-form-field half">
+            <label>Phone</label>
+            <input type="tel" id="cf_ref2Phone" value="${ref2.phone || ''}" placeholder="(555) 456-7890">
+          </div>
+        </div>
+        <div class="customer-form-field">
+          <label>Relationship</label>
+          <select id="cf_ref2Rel">
+            <option value="">Select...</option>
+            <option value="Friend" ${ref2.relationship === 'Friend' ? 'selected' : ''}>Friend</option>
+            <option value="Family" ${ref2.relationship === 'Family' ? 'selected' : ''}>Family Member</option>
+            <option value="Coworker" ${ref2.relationship === 'Coworker' ? 'selected' : ''}>Coworker</option>
+            <option value="Neighbor" ${ref2.relationship === 'Neighbor' ? 'selected' : ''}>Neighbor</option>
+            <option value="Other" ${ref2.relationship === 'Other' ? 'selected' : ''}>Other</option>
+          </select>
+        </div>
+      `;
+    }
+
+    function renderReviewSection() {
+      const d = customerFormData;
+      const addr = d.address || {};
+      const id = d.identification || {};
+      const emp = d.employment || {};
+      const refs = d.references || [];
+
+      document.getElementById('formBody').innerHTML = `
+        <div class="customer-form-section-desc">Please review your information before submitting.</div>
+        
+        <div class="customer-form-review-section">
+          <div class="customer-form-review-title">
+            Personal Information
+            <button class="customer-form-review-edit" data-step="0">Edit</button>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Name</span>
+            <span class="customer-form-review-value">${d.first_name} ${d.last_name}</span>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Date of Birth</span>
+            <span class="customer-form-review-value">${formatDOB(d.date_of_birth)}</span>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Phone</span>
+            <span class="customer-form-review-value">${d.phone}</span>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Email</span>
+            <span class="customer-form-review-value">${d.email}</span>
+          </div>
+        </div>
+
+        <div class="customer-form-review-section">
+          <div class="customer-form-review-title">
+            Address
+            <button class="customer-form-review-edit" data-step="1">Edit</button>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Street</span>
+            <span class="customer-form-review-value">${addr.street}${addr.unit ? ', ' + addr.unit : ''}</span>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">City/State/ZIP</span>
+            <span class="customer-form-review-value">${addr.city}, ${addr.state} ${addr.zip}</span>
+          </div>
+        </div>
+
+        <div class="customer-form-review-section">
+          <div class="customer-form-review-title">
+            Identification
+            <button class="customer-form-review-edit" data-step="2">Edit</button>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">ID Type</span>
+            <span class="customer-form-review-value">${formatIdType(id.type)}</span>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">ID Number</span>
+            <span class="customer-form-review-value">${maskIdNumber(id.number)}</span>
+          </div>
+        </div>
+
+        <div class="customer-form-review-section">
+          <div class="customer-form-review-title">
+            Employment
+            <button class="customer-form-review-edit" data-step="3">Edit</button>
+          </div>
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Status</span>
+            <span class="customer-form-review-value">${formatEmpStatus(emp.status)}</span>
+          </div>
+          ${emp.employer ? `
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Employer</span>
+            <span class="customer-form-review-value">${emp.employer}</span>
+          </div>
+          ` : ''}
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Monthly Income</span>
+            <span class="customer-form-review-value">${formatIncomeRange(emp.monthly_income)}</span>
+          </div>
+        </div>
+
+        <div class="customer-form-review-section">
+          <div class="customer-form-review-title">
+            References
+            <button class="customer-form-review-edit" data-step="4">Edit</button>
+          </div>
+          ${refs.map((ref, i) => ref.name ? `
+          <div class="customer-form-review-row">
+            <span class="customer-form-review-label">Reference ${i + 1}</span>
+            <span class="customer-form-review-value">${ref.name} (${ref.relationship})</span>
+          </div>
+          ` : '').join('')}
+        </div>
+
+        <div class="customer-form-terms">
+          <input type="checkbox" id="cf_terms">
+          <div class="customer-form-terms-text">
+            I confirm that all information provided is accurate and complete. I understand that providing false information may result in denial of service, contract termination, and potential legal action. I agree to the rental terms and conditions.
+          </div>
+        </div>
+      `;
+
+      document.querySelectorAll('.customer-form-review-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentFormSection = Number(btn.dataset.step);
+          renderFormSteps();
+          renderFormSection();
+        });
+      });
+    }
+
+    function getMaxDOB() {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - 18);
+      return d.toISOString().split('T')[0];
+    }
+
+    function formatDOB(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatIdType(type) {
+      const types = { drivers_license: "Driver's License", state_id: 'State ID', passport: 'Passport', military_id: 'Military ID' };
+      return types[type] || type || '';
+    }
+
+    function maskIdNumber(num) {
+      if (!num || num.length < 4) return num || '';
+      return '***' + num.slice(-4);
+    }
+
+    function formatEmpStatus(status) {
+      const statuses = { employed: 'Employed', self_employed: 'Self-Employed', retired: 'Retired', student: 'Student', unemployed: 'Unemployed', other: 'Other' };
+      return statuses[status] || status || '';
+    }
+
+    function formatIncomeRange(range) {
+      if (!range) return '';
+      if (range === '5000+') return '$5,000+';
+      const parts = range.split('-');
+      return '$' + Number(parts[0]).toLocaleString() + ' - $' + Number(parts[1]).toLocaleString();
+    }
+
+    function validateCurrentSection() {
+      const section = formSections[currentFormSection].id;
+      let valid = true;
+      let firstError = null;
+
+      const markError = (id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.add('error');
+          if (!firstError) firstError = el;
+        }
+        valid = false;
+      };
+
+      const clearErrors = () => {
+        document.querySelectorAll('.customer-form-field input, .customer-form-field select').forEach(el => {
+          el.classList.remove('error');
+        });
+      };
+
+      clearErrors();
+
+      switch (section) {
+        case 'personal':
+          if (!document.getElementById('cf_firstName').value.trim()) markError('cf_firstName');
+          if (!document.getElementById('cf_lastName').value.trim()) markError('cf_lastName');
+          if (!document.getElementById('cf_dob').value) markError('cf_dob');
+          if (!document.getElementById('cf_phone').value.trim()) markError('cf_phone');
+          if (!document.getElementById('cf_email').value.trim()) markError('cf_email');
+          break;
+
+        case 'address':
+          if (!document.getElementById('cf_street').value.trim()) markError('cf_street');
+          if (!document.getElementById('cf_city').value.trim()) markError('cf_city');
+          if (!document.getElementById('cf_state').value) markError('cf_state');
+          if (!document.getElementById('cf_zip').value.trim()) markError('cf_zip');
+          break;
+
+        case 'identification':
+          if (!document.getElementById('cf_idType').value) markError('cf_idType');
+          if (!document.getElementById('cf_idNumber').value.trim()) markError('cf_idNumber');
+          if (!document.getElementById('cf_idState').value) markError('cf_idState');
+          break;
+
+        case 'employment':
+          if (!document.getElementById('cf_empStatus').value) markError('cf_empStatus');
+          const empStatus = document.getElementById('cf_empStatus').value;
+          if ((empStatus === 'employed' || empStatus === 'self_employed') && !document.getElementById('cf_employer').value.trim()) {
+            markError('cf_employer');
+          }
+          if (!document.getElementById('cf_income').value) markError('cf_income');
+          if (!document.getElementById('cf_payFreq').value) markError('cf_payFreq');
+          break;
+
+        case 'references':
+          if (!document.getElementById('cf_ref1Name').value.trim()) markError('cf_ref1Name');
+          if (!document.getElementById('cf_ref1Phone').value.trim()) markError('cf_ref1Phone');
+          if (!document.getElementById('cf_ref1Rel').value) markError('cf_ref1Rel');
+          break;
+
+        case 'review':
+          const termsChecked = document.getElementById('cf_terms').checked;
+          if (!termsChecked) {
+            alert('Please agree to the terms and conditions.');
+            valid = false;
+          }
+          break;
+      }
+
+      if (firstError) firstError.focus();
+      return valid;
+    }
+
+    function saveCurrentSection() {
+      const section = formSections[currentFormSection].id;
+
+      switch (section) {
+        case 'personal':
+          customerFormData.first_name = document.getElementById('cf_firstName').value.trim();
+          customerFormData.last_name = document.getElementById('cf_lastName').value.trim();
+          customerFormData.date_of_birth = document.getElementById('cf_dob').value;
+          customerFormData.phone = document.getElementById('cf_phone').value.trim();
+          customerFormData.email = document.getElementById('cf_email').value.trim();
+          break;
+
+        case 'address':
+          customerFormData.address = {
+            street: document.getElementById('cf_street').value.trim(),
+            unit: document.getElementById('cf_unit').value.trim(),
+            city: document.getElementById('cf_city').value.trim(),
+            state: document.getElementById('cf_state').value,
+            zip: document.getElementById('cf_zip').value.trim()
+          };
+          break;
+
+        case 'identification':
+          customerFormData.identification = {
+            type: document.getElementById('cf_idType').value,
+            number: document.getElementById('cf_idNumber').value.trim(),
+            state: document.getElementById('cf_idState').value
+          };
+          break;
+
+        case 'employment':
+          customerFormData.employment = {
+            status: document.getElementById('cf_empStatus').value,
+            employer: document.getElementById('cf_employer').value.trim(),
+            monthly_income: document.getElementById('cf_income').value,
+            pay_frequency: document.getElementById('cf_payFreq').value
+          };
+          break;
+
+        case 'references':
+          customerFormData.references = [
+            {
+              name: document.getElementById('cf_ref1Name').value.trim(),
+              phone: document.getElementById('cf_ref1Phone').value.trim(),
+              relationship: document.getElementById('cf_ref1Rel').value
+            }
+          ];
+          const ref2Name = document.getElementById('cf_ref2Name').value.trim();
+          if (ref2Name) {
+            customerFormData.references.push({
+              name: ref2Name,
+              phone: document.getElementById('cf_ref2Phone').value.trim(),
+              relationship: document.getElementById('cf_ref2Rel').value
+            });
+          }
+          break;
+      }
+    }
+
+    async function submitFullOrder() {
+      const btn = document.getElementById('formContinue');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      try {
+        const orderNumber = await submitOrder(deliveryForForm, customerFormData);
+        document.getElementById('customerFormOverlay').remove();
+        showOrderConfirmed(deliveryForForm, orderNumber);
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Submit Application';
+        alert('Error submitting order: ' + err.message);
+      }
+    }
+
+    function generateOrderNumber() {
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+      return 'FH-' + timestamp + random;
+    }
+
+    async function submitOrder(withDelivery, customerInfo = null) {
+      const orderNumber = generateOrderNumber();
+      const subtotal = getDueToday();
+      const deliveryFee = withDelivery ? 50 : 0;
+      const totalDueToday = subtotal + deliveryFee;
+
+      const orderData = {
+        order_number: orderNumber,
+        items: orderItems.map(item => ({
+          product_id: item.product.id,
+          product_name: item.product.name,
+          plan_key: item.plan.key,
+          plan_label: item.planLabel,
+          plan_months: item.plan.months,
+          quantity: item.quantity,
+          down_payment: item.downPayment,
+          total_down: item.downPayment * item.quantity,
+          monthly_payment: item.plan.months > 0 ? item.displayPrice : null,
+          full_price: item.plan.months === 0 ? item.displayPrice : null
+        })),
+        delivery_method: withDelivery ? 'delivery' : 'pickup',
+        delivery_fee: deliveryFee,
+        subtotal: subtotal,
+        total_due_today: totalDueToday,
+        status: 'pending',
+        customer_info: customerInfo,
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await sbAdmin.from('orders').insert(orderData);
+      if (error) throw new Error(error.message);
+
+      return orderNumber;
+    }
+
+    function showOrderConfirmed(withDelivery, orderNumber) {
+      const finalTotal = getDueToday() + (withDelivery ? 50 : 0);
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'order-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="order-confirm-box">
+          <div class="order-confirm-icon">✓</div>
+          <div class="order-confirm-title">Order Confirmed!</div>
+          <div class="order-confirm-number">Order #${orderNumber}</div>
+          <div class="order-confirm-msg">Your order has been submitted successfully.<br><strong>Total due today: ${formatPrice(finalTotal)}</strong></div>
+          <button class="order-confirm-done" id="orderConfirmDone">Done</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      
+      document.getElementById('orderConfirmDone').addEventListener('click', () => {
+        overlay.remove();
+        clearOrder();
+      });
+    }
 
     // =================== SPLASH SCREEN ===================
 
@@ -1039,7 +4023,7 @@
     for (let r = 0; r < 4; r++) {
       const row = document.createElement('div');
       row.className = 'image-row ' + directions[r];
-      const shuffled = [...imageFiles].sort(() => Math.random() - 0.5);
+      const shuffled = [...splashImageFiles].sort(() => Math.random() - 0.5);
       for (let copy = 0; copy < 2; copy++) {
         shuffled.forEach(src => {
           const img = document.createElement('img');
@@ -1122,7 +4106,12 @@
       productGrid.innerHTML = '';
       const filtered = activeCategory === 'All'
         ? products
-        : products.filter(p => p.category === activeCategory);
+        : products.filter(p => {
+            if (Array.isArray(p.categories) && p.categories.length > 0) {
+              return p.categories.includes(activeCategory);
+            }
+            return p.category === activeCategory;
+          });
 
       productCount.textContent = filtered.length + ' product' + (filtered.length !== 1 ? 's' : '');
 
@@ -1136,7 +4125,7 @@
           <div class="product-card-info">
             <div class="product-card-category">${product.category}</div>
             <div class="product-card-name">${product.name}</div>
-            <div class="product-card-price">${formatPrice(product.price)}</div>
+            <div class="product-card-price">As low as ${formatPrice(getLowestMonthly(product.cost))}/mo</div>
           </div>
         `;
 
@@ -1155,28 +4144,33 @@
     const modalDetails = document.getElementById('modalDetails');
     let currentModalProduct = null;
 
-    function openModal(product) {
-      currentModalProduct = product;
+    function showProductDetails(product) {
       const specsHTML = product.specs.map(([label, value]) =>
         `<li><span>${label}</span><span>${value}</span></li>`
       ).join('');
 
-      modalImage.innerHTML = `<img src="${encodeURI(product.image)}" alt="${product.name}">`;
+      const stockLabel = product.stock_status === 'ships' 
+        ? `Ships in ${product.shipping_eta || 'TBD'}` 
+        : 'In Stock - Ready to Ship';
+      const stockClass = product.stock_status === 'ships' ? 'ships' : 'in-stock';
+
       modalDetails.innerHTML = `
-        <div class="modal-top-bar">
-          <button class="modal-close" id="modalClose">
-            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Back to Catalog
-          </button>
+        <div class="modal-details-inner">
+          <div class="modal-top-bar">
+            <button class="modal-close" id="modalClose">
+              <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Back to Catalog
+            </button>
+          </div>
+          <div class="modal-category">${product.category}</div>
+          <div class="modal-name">${product.name}</div>
+          <div class="modal-price">As low as ${formatPrice(getLowestMonthly(product.cost))}/mo</div>
+          <div class="modal-divider"></div>
+          <div class="modal-desc">${product.description}</div>
+          <ul class="modal-specs">${specsHTML}</ul>
+          <div class="modal-badge ${stockClass}">${stockLabel}</div>
+          <button class="add-to-order-btn" id="addToOrderBtn">View Purchase Options</button>
         </div>
-        <div class="modal-category">${product.category}</div>
-        <div class="modal-name">${product.name}</div>
-        <div class="modal-price">${formatPrice(product.price)}</div>
-        <div class="modal-divider"></div>
-        <div class="modal-desc">${product.description}</div>
-        <ul class="modal-specs">${specsHTML}</ul>
-        <div class="modal-badge">${product.badge}</div>
-        <button class="add-to-order-btn" id="addToOrderBtn">Add to Order</button>
       `;
 
       document.getElementById('modalClose').addEventListener('click', (e) => {
@@ -1186,10 +4180,94 @@
 
       document.getElementById('addToOrderBtn').addEventListener('click', (e) => {
         e.stopPropagation();
-        addToOrder(product);
-        closeModal();
+        showPricingView(product);
       });
+    }
 
+    function showPricingView(product) {
+      const inner = modalDetails.querySelector('.modal-details-inner');
+      if (inner) inner.style.animation = 'modalSlideOut 0.25s ease forwards';
+      let selectedPlanKey = null;
+
+      setTimeout(() => {
+        const cardsHTML = plans.map(plan => {
+          const pricing = getPlanPrice(product.cost, plan);
+          const isBest = plan.key === '3yr';
+          const isBuyNow = plan.months === 0;
+          return `
+            <div class="pricing-card ${isBest ? 'best-value' : ''}" data-plan="${plan.key}">
+              <div class="pricing-card-left">
+                <div class="pricing-card-label">${plan.label}</div>
+                <div class="pricing-card-detail">${isBuyNow ? 'Pay ' + formatPrice(pricing.total) + ' today' : formatPrice(pricing.downPayment) + ' down + ' + formatPrice(pricing.monthly) + '/mo × ' + plan.months}</div>
+                ${isBest ? '<span class="pricing-card-badge">Lowest Monthly</span>' : ''}
+              </div>
+              <div class="pricing-card-right">
+                <div class="pricing-card-amount">${isBuyNow ? formatPrice(pricing.total) : formatPrice(pricing.monthly)}</div>
+                <div class="pricing-card-period">${isBuyNow ? 'total' : '/month'}</div>
+                ${isBuyNow ? '' : '<div class="pricing-card-down">10% down: ' + formatPrice(pricing.downPayment) + '</div>'}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        modalDetails.innerHTML = `
+          <div class="pricing-view">
+            <div class="modal-top-bar">
+              <button class="modal-close" id="modalClose">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Back to Catalog
+              </button>
+            </div>
+            <div class="pricing-header">
+              <div class="pricing-product-name">${product.name}</div>
+              <div class="pricing-subtitle">Choose a payment plan</div>
+            </div>
+            <div class="pricing-cards">${cardsHTML}</div>
+            <button class="add-to-order-btn disabled" id="pricingConfirmBtn">Select a Plan</button>
+            <button class="pricing-back-btn" id="pricingBackBtn">Back to Details</button>
+          </div>
+        `;
+
+        const confirmBtn = document.getElementById('pricingConfirmBtn');
+        const allCards = modalDetails.querySelectorAll('.pricing-card');
+
+        document.getElementById('modalClose').addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeModal();
+        });
+
+        document.getElementById('pricingBackBtn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          const view = modalDetails.querySelector('.pricing-view');
+          if (view) view.style.animation = 'modalSlideOut 0.25s ease forwards';
+          setTimeout(() => showProductDetails(product), 250);
+        });
+
+        allCards.forEach(card => {
+          card.addEventListener('click', (e) => {
+            e.stopPropagation();
+            allCards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedPlanKey = card.dataset.plan;
+            confirmBtn.classList.remove('disabled');
+            confirmBtn.textContent = 'Add to Order';
+          });
+        });
+
+        confirmBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!selectedPlanKey) return;
+          const plan = plans.find(p => p.key === selectedPlanKey);
+          addToOrder(product, plan);
+          closeModal();
+        });
+      }, 250);
+    }
+
+    function openModal(product) {
+      currentModalProduct = product;
+      modalImage.innerHTML = `<img src="${encodeURI(product.image)}" alt="${product.name}">`;
+      showProductDetails(product);
       modalBackdrop.classList.add('open');
     }
 
@@ -1205,10 +4283,1131 @@
     });
 
 
+    // =================== SECRET TAP (10x logo) ===================
+
+    let logoTapCount = 0;
+    let logoTapTimer = null;
+    const LOGO_TAP_TARGET = 10;
+    const LOGO_TAP_WINDOW = 3000;
+
+    document.querySelector('.catalog-logo').addEventListener('click', () => {
+      logoTapCount++;
+      clearTimeout(logoTapTimer);
+      if (logoTapCount >= LOGO_TAP_TARGET) {
+        logoTapCount = 0;
+        showPinScreen();
+      } else {
+        logoTapTimer = setTimeout(() => { logoTapCount = 0; }, LOGO_TAP_WINDOW);
+      }
+    });
+
+    // =================== PIN SCREEN ===================
+
+    const pinScreen = document.getElementById('pinScreen');
+    const pinDotsEl = document.getElementById('pinDots');
+    const CORRECT_PIN = '767676';
+    let pinEntry = '';
+
+    function showPinScreen() {
+      pinEntry = '';
+      updatePinDots();
+      pinScreen.classList.add('visible');
+    }
+
+    function hidePinScreen() {
+      pinScreen.classList.remove('visible');
+      pinEntry = '';
+      updatePinDots();
+    }
+
+    function updatePinDots() {
+      const dots = pinDotsEl.querySelectorAll('.pin-dot');
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('filled', i < pinEntry.length);
+      });
+    }
+
+    document.getElementById('pinKeypad').addEventListener('click', (e) => {
+      const key = e.target.closest('.pin-key');
+      if (!key) return;
+      const val = key.dataset.val;
+
+      if (val === 'clear') {
+        pinEntry = '';
+        updatePinDots();
+        return;
+      }
+      if (val === 'back') {
+        pinEntry = pinEntry.slice(0, -1);
+        updatePinDots();
+        return;
+      }
+      if (pinEntry.length >= 6) return;
+
+      pinEntry += val;
+      updatePinDots();
+
+      if (pinEntry.length === 6) {
+        if (pinEntry === CORRECT_PIN) {
+          setTimeout(() => {
+            hidePinScreen();
+            showAdminScreen();
+          }, 300);
+        } else {
+          pinDotsEl.classList.add('shake');
+          setTimeout(() => {
+            pinDotsEl.classList.remove('shake');
+            pinEntry = '';
+            updatePinDots();
+          }, 500);
+        }
+      }
+    });
+
+    document.getElementById('pinBackBtn').addEventListener('click', hidePinScreen);
+
+    // =================== ADMIN SCREEN ===================
+
+    const adminScreen = document.getElementById('adminScreen');
+    const adminBody = document.getElementById('adminBody');
+    const adminPageTitle = document.getElementById('adminPageTitle');
+    const adminHeaderActions = document.getElementById('adminHeaderActions');
+    let adminPage = 'dashboard';
+    let editingProductId = null;
+    let nextProductId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+
+    const pageTitles = { dashboard: 'Dashboard', orders: 'Orders', products: 'Products', calculator: 'Price Calculator', terminal: 'Stripe Terminal', store: 'Store Settings' };
+
+    function showAdminScreen() {
+      adminPage = 'dashboard';
+      editingProductId = null;
+      updateAdminNav();
+      renderAdminPage();
+      adminScreen.classList.add('visible');
+    }
+
+    function hideAdminScreen() {
+      adminScreen.classList.remove('visible');
+      renderCategories();
+      renderProducts();
+    }
+
+    function updateAdminNav() {
+      adminScreen.querySelectorAll('.admin-nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.page === adminPage);
+      });
+      adminPageTitle.textContent = pageTitles[adminPage] || 'Dashboard';
+    }
+
+    adminScreen.querySelectorAll('.admin-nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        adminPage = item.dataset.page;
+        editingProductId = null;
+        updateAdminNav();
+        renderAdminPage();
+      });
+    });
+
+    document.getElementById('adminLogoutBtn').addEventListener('click', hideAdminScreen);
+
+    function renderAdminPage() {
+      adminHeaderActions.innerHTML = '';
+      if (adminPage === 'dashboard') {
+        renderAdminDashboard();
+      } else if (adminPage === 'orders') {
+        renderAdminOrders();
+      } else if (adminPage === 'products') {
+        if (editingProductId !== null || editingProductId === 'new') {
+          renderAdminForm(editingProductId === 'new' ? null : editingProductId);
+        } else {
+          renderAdminProductList();
+        }
+      } else if (adminPage === 'calculator') {
+        renderAdminCalculator();
+      } else if (adminPage === 'terminal') {
+        renderAdminTerminal();
+      } else if (adminPage === 'store') {
+        renderAdminStore();
+      }
+    }
+
+    // ---- Dashboard ----
+
+    function renderAdminDashboard() {
+      const totalProducts = products.length;
+      const totalCategories = categories.filter(c => c !== 'All').length;
+      const avgCost = totalProducts > 0 ? Math.round(products.reduce((s, p) => s + p.cost, 0) / totalProducts) : 0;
+      const totalValue = products.reduce((s, p) => s + p.cost, 0);
+
+      adminBody.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.9rem;margin-bottom:1.5rem">
+          <div style="background:#fff;border-radius:8px;padding:1rem 1.2rem;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 0 0 1px rgba(0,0,0,0.04)">
+            <div style="font-size:0.72rem;font-weight:600;color:#697386;margin-bottom:0.5rem">Total Products</div>
+            <div style="font-size:1.65rem;font-weight:700;color:#0a2540;letter-spacing:-0.02em">${totalProducts}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:1rem 1.2rem;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 0 0 1px rgba(0,0,0,0.04)">
+            <div style="font-size:0.72rem;font-weight:600;color:#697386;margin-bottom:0.5rem">Categories</div>
+            <div style="font-size:1.65rem;font-weight:700;color:#0a2540;letter-spacing:-0.02em">${totalCategories}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:1rem 1.2rem;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 0 0 1px rgba(0,0,0,0.04)">
+            <div style="font-size:0.72rem;font-weight:600;color:#697386;margin-bottom:0.5rem">Avg. Cost</div>
+            <div style="font-size:1.65rem;font-weight:700;color:#0a2540;letter-spacing:-0.02em">${formatPrice(avgCost)}</div>
+          </div>
+          <div style="background:#fff;border-radius:8px;padding:1rem 1.2rem;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 0 0 1px rgba(0,0,0,0.04)">
+            <div style="font-size:0.72rem;font-weight:600;color:#697386;margin-bottom:0.5rem">Inventory Value</div>
+            <div style="font-size:1.65rem;font-weight:700;color:#0a2540;letter-spacing:-0.02em">${formatPrice(totalValue)}</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:1.2rem 1.4rem;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 0 0 1px rgba(0,0,0,0.04)">
+          <div style="font-size:0.82rem;font-weight:600;color:#0a2540;margin-bottom:1rem">Products by Category</div>
+          ${categories.filter(c => c !== 'All').map(cat => {
+            const count = products.filter(p => p.category === cat).length;
+            const pct = totalProducts > 0 ? Math.round(count / totalProducts * 100) : 0;
+            return `
+              <div style="display:flex;align-items:center;gap:0.9rem;margin-bottom:0.65rem">
+                <div style="width:90px;font-size:0.8rem;color:#697386;flex-shrink:0">${cat}</div>
+                <div style="flex:1;height:6px;background:#e3e8ee;border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${pct}%;background:#635bff;border-radius:3px;transition:width 0.3s"></div>
+                </div>
+                <div style="width:50px;text-align:right;font-size:0.8rem;font-weight:600;color:#0a2540">${count}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // ---- Orders ----
+
+    let adminOrders = [];
+    let selectedOrderId = null;
+
+    async function loadAdminOrders() {
+      const { data, error } = await sbAdmin.from('orders').select('*').order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error loading orders:', error);
+        return [];
+      }
+      return data || [];
+    }
+
+    async function renderAdminOrders() {
+      adminHeaderActions.innerHTML = `<button class="admin-refresh-btn" id="adminRefreshOrders">↻ Refresh</button>`;
+      adminBody.innerHTML = '<div style="text-align:center;padding:2rem;color:#697386">Loading orders...</div>';
+
+      adminOrders = await loadAdminOrders();
+
+      if (adminOrders.length === 0) {
+        adminBody.innerHTML = `
+          <div style="background:#fff;border-radius:8px;padding:3rem 2rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 0 0 1px rgba(0,0,0,0.04)">
+            <svg viewBox="0 0 24 24" style="width:40px;height:40px;fill:none;stroke:#d3d8de;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:0.8rem">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+            </svg>
+            <div style="font-size:0.92rem;font-weight:600;color:#0a2540;margin-bottom:0.25rem">No orders yet</div>
+            <div style="font-size:0.82rem;color:#697386">Customer orders from the catalog will appear here.</div>
+          </div>
+        `;
+      } else {
+        adminBody.innerHTML = `
+          <div class="admin-orders-list">
+            ${adminOrders.map(order => {
+              const date = new Date(order.created_at);
+              const timeAgo = getTimeAgo(date);
+              const itemCount = order.items ? order.items.length : 0;
+              const statusClass = order.status === 'completed' ? 'completed' : order.status === 'cancelled' ? 'cancelled' : 'pending';
+              return `
+                <div class="admin-order-row" data-order-id="${order.id}">
+                  <div class="admin-order-main">
+                    <div class="admin-order-number">${order.order_number || 'N/A'}</div>
+                    <div class="admin-order-meta">
+                      <span class="admin-order-items">${itemCount} item${itemCount !== 1 ? 's' : ''}</span>
+                      <span class="admin-order-delivery">${order.delivery_method === 'delivery' ? '🚚 Delivery' : '🏪 Pickup'}</span>
+                    </div>
+                  </div>
+                  <div class="admin-order-info">
+                    <div class="admin-order-total">${formatPrice(order.total_due_today)}</div>
+                    <div class="admin-order-time">${timeAgo}</div>
+                  </div>
+                  <div class="admin-order-status ${statusClass}">${order.status || 'pending'}</div>
+                  <button class="admin-order-view" data-order-id="${order.id}">View</button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        adminBody.querySelectorAll('.admin-order-view').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const orderId = Number(btn.dataset.orderId);
+            showOrderDetails(orderId);
+          });
+        });
+
+        adminBody.querySelectorAll('.admin-order-row').forEach(row => {
+          row.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('admin-order-view')) {
+              const orderId = Number(row.dataset.orderId);
+              showOrderDetails(orderId);
+            }
+          });
+        });
+      }
+
+      document.getElementById('adminRefreshOrders').addEventListener('click', () => {
+        renderAdminOrders();
+      });
+    }
+
+    function getTimeAgo(date) {
+      const now = new Date();
+      const seconds = Math.floor((now - date) / 1000);
+      
+      if (seconds < 60) return 'Just now';
+      if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+      if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+      if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+      
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+    }
+
+    function showOrderDetails(orderId) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const date = new Date(order.created_at);
+      const formattedDate = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+      const itemsHTML = (order.items || []).map(item => `
+        <div class="order-detail-item">
+          <div class="order-detail-item-info">
+            <div class="order-detail-item-name">${item.product_name}</div>
+            <div class="order-detail-item-plan">${item.plan_label}${item.quantity > 1 ? ' × ' + item.quantity : ''}</div>
+          </div>
+          <div class="order-detail-item-price">${formatPrice(item.total_down)} down</div>
+        </div>
+      `).join('');
+
+      const c = order.customer_info || {};
+      const addr = c.address || {};
+      const id = c.identification || {};
+      const emp = c.employment || {};
+      const refs = c.references || [];
+
+      const customerHTML = c.first_name ? `
+        <div class="order-detail-section">
+          <div class="order-detail-section-title">Customer Information</div>
+          <div class="order-detail-customer-grid">
+            <div class="order-detail-customer-col">
+              <div class="order-detail-customer-label">Name</div>
+              <div class="order-detail-customer-value">${c.first_name} ${c.last_name}</div>
+              
+              <div class="order-detail-customer-label">Phone</div>
+              <div class="order-detail-customer-value">${c.phone}</div>
+              
+              <div class="order-detail-customer-label">Email</div>
+              <div class="order-detail-customer-value">${c.email}</div>
+              
+              <div class="order-detail-customer-label">Date of Birth</div>
+              <div class="order-detail-customer-value">${c.date_of_birth || 'N/A'}</div>
+            </div>
+            <div class="order-detail-customer-col">
+              <div class="order-detail-customer-label">Address</div>
+              <div class="order-detail-customer-value">
+                ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}<br>
+                ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}
+              </div>
+              
+              <div class="order-detail-customer-label">ID</div>
+              <div class="order-detail-customer-value">${formatIdType(id.type)} - ${id.number || 'N/A'} (${id.state || ''})</div>
+              
+              <div class="order-detail-customer-label">Employment</div>
+              <div class="order-detail-customer-value">${formatEmpStatus(emp.status)}${emp.employer ? ' at ' + emp.employer : ''}</div>
+              
+              <div class="order-detail-customer-label">Income</div>
+              <div class="order-detail-customer-value">${formatIncomeRange(emp.monthly_income)} (${emp.pay_frequency || ''})</div>
+            </div>
+          </div>
+          ${refs.length > 0 ? `
+            <div class="order-detail-customer-label" style="margin-top:0.75rem">References</div>
+            ${refs.map((ref, i) => ref.name ? `
+              <div class="order-detail-customer-value">${i + 1}. ${ref.name} (${ref.relationship}) - ${ref.phone}</div>
+            ` : '').join('')}
+          ` : ''}
+        </div>
+      ` : '';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'admin-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="order-detail-box" style="max-width:600px">
+          <div class="order-detail-header">
+            <div>
+              <div class="order-detail-title">Order ${order.order_number}</div>
+              <div class="order-detail-time">${formattedDate} at ${formattedTime}</div>
+            </div>
+            <button class="order-detail-close" id="orderDetailClose">&times;</button>
+          </div>
+          <div class="order-detail-status-row">
+            <span class="order-detail-status ${order.status || 'pending'}">${order.status || 'pending'}</span>
+            <span class="order-detail-delivery">${order.delivery_method === 'delivery' ? '🚚 Delivery' : '🏪 Store Pickup'}</span>
+          </div>
+          ${customerHTML}
+          <div class="order-detail-section">
+            <div class="order-detail-section-title">Items</div>
+            ${itemsHTML}
+          </div>
+          <div class="order-detail-totals">
+            <div class="order-detail-total-row">
+              <span>Subtotal</span>
+              <span>${formatPrice(order.subtotal)}</span>
+            </div>
+            ${order.delivery_fee > 0 ? `
+              <div class="order-detail-total-row">
+                <span>Delivery Fee</span>
+                <span>${formatPrice(order.delivery_fee)}</span>
+              </div>
+            ` : ''}
+            <div class="order-detail-total-row final">
+              <span>Total Due Today</span>
+              <span>${formatPrice(order.total_due_today)}</span>
+            </div>
+          </div>
+          <div class="order-detail-actions">
+            <select class="order-status-select" id="orderStatusSelect">
+              <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
+              <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+            </select>
+            <button class="order-status-save" id="orderStatusSave">Update Status</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      document.getElementById('orderDetailClose').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+      document.getElementById('orderStatusSave').addEventListener('click', async () => {
+        const newStatus = document.getElementById('orderStatusSelect').value;
+        const btn = document.getElementById('orderStatusSave');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        const { error } = await sbAdmin.from('orders').update({ status: newStatus }).eq('id', orderId);
+        if (error) {
+          alert('Error updating status: ' + error.message);
+          btn.disabled = false;
+          btn.textContent = 'Update Status';
+        } else {
+          overlay.remove();
+          renderAdminOrders();
+        }
+      });
+    }
+
+    // ---- Stripe Terminal ----
+
+    let terminalReaderId = localStorage.getItem('stripe_terminal_reader_id') || '';
+    let terminalStatus = 'disconnected';
+
+    function renderAdminTerminal() {
+      adminBody.innerHTML = `
+        <div style="max-width:500px">
+          <div style="background:#f6f8fa;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0a2540" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="12" x2="6" y2="12.01"/><line x1="10" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="10" y2="16"/></svg>
+              <div>
+                <div style="font-size:1rem;font-weight:600;color:#0a2540">Stripe Terminal</div>
+                <div style="font-size:0.82rem;color:#697386">Send payments to your card reader</div>
+              </div>
+            </div>
+            <div id="readerStatus" style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem">
+              <span style="width:10px;height:10px;border-radius:50%;background:#d1d5db"></span>
+              <span style="color:#697386">Checking...</span>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #e3e8ee;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem">
+            <label style="display:block;font-size:0.82rem;font-weight:500;color:#3c4257;margin-bottom:0.4rem">Select Reader</label>
+            <div style="display:flex;gap:0.5rem">
+              <select id="terminalReaderSelect" style="flex:1;padding:0.7rem 0.85rem;border:1px solid #d3d8de;border-radius:8px;font-size:0.9rem">
+                <option value="">Loading readers...</option>
+              </select>
+              <button id="refreshReaders" style="padding:0.7rem 1rem;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:8px;font-size:0.85rem;cursor:pointer">↻</button>
+            </div>
+            <div style="font-size:0.75rem;color:#697386;margin-top:0.4rem">Or enter Reader ID manually:</div>
+            <input type="text" id="terminalReaderId" value="${terminalReaderId}" placeholder="tmr_xxxxx" style="width:100%;margin-top:0.4rem;padding:0.6rem 0.85rem;border:1px solid #d3d8de;border-radius:8px;font-size:0.85rem">
+          </div>
+
+          <div style="background:#fff;border:1px solid #e3e8ee;border-radius:12px;padding:1.5rem">
+            <label style="display:block;font-size:0.82rem;font-weight:500;color:#3c4257;margin-bottom:0.4rem">Amount to Charge</label>
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem">
+              <span style="font-size:1.5rem;color:#697386">$</span>
+              <input type="number" id="terminalAmount" placeholder="0.00" min="0.50" step="0.01" style="flex:1;padding:0.85rem;border:1px solid #d3d8de;border-radius:8px;font-size:1.5rem;font-weight:600">
+            </div>
+            <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+              <button class="quick-amount" data-amount="10" style="padding:0.5rem 1rem;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:6px;font-size:0.85rem;cursor:pointer">$10</button>
+              <button class="quick-amount" data-amount="25" style="padding:0.5rem 1rem;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:6px;font-size:0.85rem;cursor:pointer">$25</button>
+              <button class="quick-amount" data-amount="50" style="padding:0.5rem 1rem;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:6px;font-size:0.85rem;cursor:pointer">$50</button>
+              <button class="quick-amount" data-amount="100" style="padding:0.5rem 1rem;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:6px;font-size:0.85rem;cursor:pointer">$100</button>
+              <button class="quick-amount" data-amount="250" style="padding:0.5rem 1rem;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:6px;font-size:0.85rem;cursor:pointer">$250</button>
+            </div>
+            <button id="sendToTerminal" style="width:100%;padding:1rem;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer">
+              Send to Terminal
+            </button>
+            <button id="cancelPayment" style="width:100%;padding:0.75rem;background:#fff;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;font-size:0.9rem;margin-top:0.5rem;cursor:pointer;display:none">
+              Cancel Payment
+            </button>
+            <div id="terminalMessage" style="margin-top:1rem;padding:0.75rem;border-radius:8px;font-size:0.85rem;display:none"></div>
+          </div>
+        </div>
+      `;
+
+      loadTerminalReaders();
+
+      document.getElementById('refreshReaders').addEventListener('click', loadTerminalReaders);
+
+      document.getElementById('terminalReaderSelect').addEventListener('change', (e) => {
+        const id = e.target.value;
+        document.getElementById('terminalReaderId').value = id;
+        localStorage.setItem('stripe_terminal_reader_id', id);
+        terminalReaderId = id;
+        if (id) checkReaderStatus(id);
+      });
+
+      document.getElementById('terminalReaderId').addEventListener('change', (e) => {
+        const id = e.target.value.trim();
+        localStorage.setItem('stripe_terminal_reader_id', id);
+        terminalReaderId = id;
+        if (id) checkReaderStatus(id);
+      });
+
+      document.querySelectorAll('.quick-amount').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('terminalAmount').value = btn.dataset.amount;
+        });
+      });
+
+      document.getElementById('sendToTerminal').addEventListener('click', () => {
+        const readerId = document.getElementById('terminalReaderId').value.trim() || document.getElementById('terminalReaderSelect').value;
+        const amount = parseFloat(document.getElementById('terminalAmount').value);
+        if (!readerId) {
+          showTerminalMessage('Please select or enter a Reader ID.', 'error');
+          return;
+        }
+        if (!amount || amount < 0.50) {
+          showTerminalMessage('Please enter an amount of at least $0.50.', 'error');
+          return;
+        }
+        sendPaymentToTerminal(amount, readerId);
+      });
+
+      document.getElementById('cancelPayment').addEventListener('click', () => {
+        const readerId = document.getElementById('terminalReaderId').value.trim() || document.getElementById('terminalReaderSelect').value;
+        cancelTerminalPayment(readerId);
+      });
+    }
+
+    async function loadTerminalReaders() {
+      const select = document.getElementById('terminalReaderSelect');
+      select.innerHTML = '<option value="">Loading...</option>';
+
+      try {
+        const response = await fetch('/api/terminal/readers');
+        const data = await response.json();
+
+        if (data.error) {
+          select.innerHTML = '<option value="">Error loading readers</option>';
+          return;
+        }
+
+        if (data.readers.length === 0) {
+          select.innerHTML = '<option value="">No readers found</option>';
+        } else {
+          select.innerHTML = '<option value="">Select a reader...</option>' +
+            data.readers.map(r => `<option value="${r.id}" ${r.id === terminalReaderId ? 'selected' : ''}>${r.label || r.id} (${r.status})</option>`).join('');
+          
+          if (terminalReaderId) {
+            checkReaderStatus(terminalReaderId);
+          }
+        }
+      } catch (err) {
+        select.innerHTML = '<option value="">Server not running</option>';
+        updateReaderStatusDisplay('offline', 'Server offline - run npm start');
+      }
+    }
+
+    async function checkReaderStatus(readerId) {
+      try {
+        const response = await fetch(`/api/terminal/reader/${readerId}`);
+        const data = await response.json();
+
+        if (data.error) {
+          updateReaderStatusDisplay('error', data.error);
+        } else {
+          updateReaderStatusDisplay(data.status, `${data.label || data.id} - ${data.status}`);
+        }
+      } catch (err) {
+        updateReaderStatusDisplay('offline', 'Could not check reader');
+      }
+    }
+
+    function updateReaderStatusDisplay(status, text) {
+      const el = document.getElementById('readerStatus');
+      const isOnline = status === 'online';
+      el.innerHTML = `
+        <span style="width:10px;height:10px;border-radius:50%;background:${isOnline ? '#0d9488' : '#d1d5db'}"></span>
+        <span style="color:${isOnline ? '#0d9488' : '#697386'}">${text}</span>
+      `;
+    }
+
+    function showTerminalMessage(msg, type) {
+      const el = document.getElementById('terminalMessage');
+      el.style.display = 'block';
+      el.style.background = type === 'success' ? '#ecfdf5' : type === 'error' ? '#fef2f2' : '#f0f9ff';
+      el.style.color = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : '#0c4a6e';
+      el.style.border = `1px solid ${type === 'success' ? '#6ee7b7' : type === 'error' ? '#fca5a5' : '#7dd3fc'}`;
+      el.textContent = msg;
+    }
+
+    async function sendPaymentToTerminal(amount, readerId) {
+      const btn = document.getElementById('sendToTerminal');
+      const cancelBtn = document.getElementById('cancelPayment');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      showTerminalMessage('Creating payment...', 'info');
+
+      try {
+        const amountCents = Math.round(amount * 100);
+        
+        const response = await fetch('/api/terminal/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: amountCents,
+            reader_id: readerId
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          showTerminalMessage('Error: ' + result.error, 'error');
+          btn.disabled = false;
+          btn.textContent = 'Send to Terminal';
+        } else {
+          showTerminalMessage(`✓ $${amount.toFixed(2)} sent to terminal! Waiting for customer to tap/insert card...`, 'success');
+          cancelBtn.style.display = 'block';
+          btn.textContent = 'Payment Pending...';
+        }
+
+      } catch (err) {
+        showTerminalMessage('Error: ' + err.message + '. Make sure server is running (npm start)', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Send to Terminal';
+      }
+    }
+
+    async function cancelTerminalPayment(readerId) {
+      const btn = document.getElementById('sendToTerminal');
+      const cancelBtn = document.getElementById('cancelPayment');
+
+      try {
+        const response = await fetch('/api/terminal/cancel-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reader_id: readerId })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          showTerminalMessage('Cancel error: ' + result.error, 'error');
+        } else {
+          showTerminalMessage('Payment cancelled.', 'info');
+        }
+
+      } catch (err) {
+        showTerminalMessage('Error cancelling: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send to Terminal';
+        cancelBtn.style.display = 'none';
+      }
+    }
+
+    // ---- Store Settings ----
+
+    function renderAdminStore() {
+      adminBody.innerHTML = `
+        <div style="background:#fff;border-radius:8px;padding:3rem 2rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 0 0 1px rgba(0,0,0,0.04)">
+          <svg viewBox="0 0 24 24" style="width:40px;height:40px;fill:none;stroke:#d3d8de;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:0.8rem">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+          <div style="font-size:0.92rem;font-weight:600;color:#0a2540;margin-bottom:0.25rem">Store Settings</div>
+          <div style="font-size:0.82rem;color:#697386">Store configuration options coming soon.</div>
+        </div>
+      `;
+    }
+
+    // ---- Price Calculator ----
+
+    function renderAdminCalculator() {
+      adminBody.innerHTML = `
+        <div class="calc-container">
+          <div class="calc-input-section">
+            <div class="calc-title">Enter Product Cost</div>
+            <div class="calc-input-row">
+              <span class="calc-dollar">$</span>
+              <input type="number" id="calcCostInput" placeholder="0" min="0" step="1">
+              <button class="calc-btn" id="calcBtn">Calculate</button>
+            </div>
+            <div class="calc-hint">Enter what you paid for the product</div>
+          </div>
+          <div id="calcResults"></div>
+        </div>
+      `;
+
+      document.getElementById('calcBtn').addEventListener('click', calculatePrices);
+      document.getElementById('calcCostInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') calculatePrices();
+      });
+
+      function calculatePrices() {
+        const cost = Number(document.getElementById('calcCostInput').value);
+        if (!cost || cost <= 0) {
+          document.getElementById('calcResults').innerHTML = '<div class="calc-error">Please enter a valid cost amount</div>';
+          return;
+        }
+
+        const calcPlans = [
+          { key: 'now', label: 'Buy Now', markup: 2.0, months: 0 },
+          { key: '1yr', label: '12-Month Plan', markup: 2.5, months: 12 },
+          { key: '2yr', label: '24-Month Plan', markup: 3.0, months: 24 },
+          { key: '3yr', label: '36-Month Plan', markup: 3.5, months: 36 }
+        ];
+
+        let resultsHTML = '<div class="calc-results-grid">';
+
+        calcPlans.forEach(plan => {
+          const total = Math.round(cost * plan.markup);
+          const isBuyNow = plan.months === 0;
+          const downPayment = isBuyNow ? total : Math.round(total * 0.10);
+          const remaining = isBuyNow ? 0 : total - downPayment;
+          const monthly = isBuyNow ? null : Math.round(remaining / plan.months);
+          const weekly = isBuyNow ? null : Math.round(monthly / 4.33);
+
+          resultsHTML += `
+            <div class="calc-result-card ${isBuyNow ? 'buy-now' : ''}">
+              <div class="calc-result-label">${plan.label}</div>
+              <div class="calc-essentials">
+                ${isBuyNow ? `
+                  <div class="calc-essential-item full">
+                    <div class="calc-essential-value">${formatPrice(total)}</div>
+                    <div class="calc-essential-label">Total Due Today</div>
+                  </div>
+                ` : `
+                  <div class="calc-essential-item">
+                    <div class="calc-essential-value">${formatPrice(downPayment)}</div>
+                    <div class="calc-essential-label">Down Payment</div>
+                  </div>
+                  <div class="calc-essential-item">
+                    <div class="calc-essential-value">${formatPrice(monthly)}<span class="calc-mo">/mo</span></div>
+                    <div class="calc-essential-label">Monthly Payment</div>
+                  </div>
+                  <div class="calc-essential-item">
+                    <div class="calc-essential-value">${formatPrice(weekly)}<span class="calc-mo">/wk</span></div>
+                    <div class="calc-essential-label">Weekly Payment</div>
+                  </div>
+                `}
+              </div>
+              <details class="calc-details">
+                <summary>Show breakdown</summary>
+                <div class="calc-details-content">
+                  <div class="calc-breakdown-row">
+                    <span>Your Cost</span>
+                    <span>${formatPrice(cost)}</span>
+                  </div>
+                  <div class="calc-breakdown-row">
+                    <span>Markup (× ${plan.markup})</span>
+                    <span>+${formatPrice(total - cost)}</span>
+                  </div>
+                  <div class="calc-breakdown-row total">
+                    <span>Total Price</span>
+                    <span>${formatPrice(total)}</span>
+                  </div>
+                  ${!isBuyNow ? `
+                    <div class="calc-breakdown-row" style="margin-top:0.5rem">
+                      <span>10% Down</span>
+                      <span>${formatPrice(downPayment)}</span>
+                    </div>
+                    <div class="calc-breakdown-row">
+                      <span>Remaining</span>
+                      <span>${formatPrice(remaining)}</span>
+                    </div>
+                    <div class="calc-breakdown-row">
+                      <span>÷ ${plan.months} months</span>
+                      <span>${formatPrice(monthly)}/mo</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </details>
+            </div>
+          `;
+        });
+
+        resultsHTML += '</div>';
+        document.getElementById('calcResults').innerHTML = resultsHTML;
+      }
+    }
+
+    // ---- Product List ----
+
+    function renderAdminProductList() {
+      adminHeaderActions.innerHTML = `<button class="admin-add-btn" id="adminAddNewBtn">+ Add Product</button>`;
+      adminBody.innerHTML = `
+        <div class="admin-top-bar">
+          <div class="admin-product-count">${products.length} product${products.length !== 1 ? 's' : ''}</div>
+        </div>
+        <table class="admin-product-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Cost</th>
+              <th>Badge</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${products.map(p => `
+              <tr class="admin-product-row">
+                <td><img class="admin-thumb" src="${encodeURI(p.image)}" alt="${p.name}"></td>
+                <td style="font-weight:500">${p.name}</td>
+                <td>${p.category}</td>
+                <td>${formatPrice(p.cost)}</td>
+                <td style="font-size:0.78rem;color:#888">${p.badge}</td>
+                <td>
+                  <div class="admin-row-actions">
+                    <button class="admin-edit-btn" data-id="${p.id}">Edit</button>
+                    <button class="admin-delete-btn" data-id="${p.id}">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('adminAddNewBtn').addEventListener('click', () => {
+        editingProductId = 'new';
+        renderAdminPage();
+      });
+
+      adminBody.querySelectorAll('.admin-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          editingProductId = Number(btn.dataset.id);
+          renderAdminPage();
+        });
+      });
+
+      adminBody.querySelectorAll('.admin-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          showDeleteConfirm(Number(btn.dataset.id));
+        });
+      });
+    }
+
+    // ---- Add/Edit Form ----
+
+    function renderAdminForm(productId) {
+      const p = productId ? products.find(x => x.id === productId) : null;
+      const isEdit = !!p;
+      const specs = p ? [...p.specs] : [['', '']];
+      const allCategories = ['Living Room', 'Bedroom', 'Dining', 'Office', 'Gaming'];
+      const existingCategories = [...new Set(products.map(pr => pr.category))];
+      const uniqueCategories = [...new Set([...allCategories, ...existingCategories])];
+      const productCategories = isEdit ? (Array.isArray(p.categories) ? p.categories : [p.category]) : [];
+
+      adminBody.innerHTML = `
+        <div class="admin-form">
+          <div class="admin-form-title">${isEdit ? 'Edit Product' : 'Add New Product'}</div>
+          <div class="admin-field-row">
+            <div class="admin-field">
+              <label>Product Name</label>
+              <input type="text" id="af_name" value="${isEdit ? p.name : ''}">
+            </div>
+            <div class="admin-field">
+              <label>Cost (what we paid)</label>
+              <input type="number" id="af_cost" value="${isEdit ? p.cost : ''}" min="0" step="1">
+            </div>
+          </div>
+          <div class="admin-field">
+            <label>Categories</label>
+            <div class="admin-categories" id="af_categories">
+              ${uniqueCategories.map(c => `
+                <label class="admin-category-checkbox">
+                  <input type="checkbox" value="${c}" ${productCategories.includes(c) ? 'checked' : ''}>
+                  <span>${c}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;align-items:center">
+              <input type="text" id="af_newCategory" placeholder="Add new category..." style="flex:1;padding:0.4rem 0.6rem;font-size:0.85rem">
+              <button type="button" id="af_addCategory" style="padding:0.4rem 0.8rem;font-size:0.8rem;background:#635bff;color:#fff;border:none;border-radius:4px;cursor:pointer">Add</button>
+            </div>
+          </div>
+          <div class="admin-field">
+            <label>Stock Status</label>
+            <div class="admin-stock-options" id="af_stockOptions">
+              <label class="admin-radio-option">
+                <input type="radio" name="stockStatus" value="in_stock" ${!isEdit || p.stock_status !== 'ships' ? 'checked' : ''}>
+                <span>In Stock - Ready to Ship</span>
+              </label>
+              <label class="admin-radio-option">
+                <input type="radio" name="stockStatus" value="ships" ${isEdit && p.stock_status === 'ships' ? 'checked' : ''}>
+                <span>Needs to Ship</span>
+              </label>
+            </div>
+            <div id="af_shippingEtaRow" style="margin-top:0.5rem;display:${isEdit && p.stock_status === 'ships' ? 'block' : 'none'}">
+              <input type="text" id="af_shippingEta" value="${isEdit && p.shipping_eta ? p.shipping_eta : ''}" placeholder="e.g. 2-3 weeks, 5-7 business days">
+              <div style="font-size:0.7rem;color:#697386;margin-top:0.2rem">Estimated shipping time shown to customers</div>
+            </div>
+          </div>
+          <div class="admin-field-row">
+            <div class="admin-field">
+              <label>Badge (optional)</label>
+              <input type="text" id="af_badge" value="${isEdit ? (p.badge || '') : ''}" placeholder="e.g. Best Seller, New Arrival">
+              <div style="font-size:0.7rem;color:#697386;margin-top:0.2rem">Leave empty for no badge</div>
+            </div>
+            <div class="admin-field">
+              <label>Product Link (internal only)</label>
+              <input type="url" id="af_link" value="${isEdit && p.link ? p.link : ''}" placeholder="https://supplier.com/product...">
+              <div style="font-size:0.7rem;color:#697386;margin-top:0.2rem">Customers won't see this link</div>
+            </div>
+          </div>
+          <div class="admin-field">
+            <label>Product Image</label>
+            ${isEdit && p.image ? `<div style="margin-bottom:0.5rem"><img src="${p.image}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e3e8ee"></div>` : ''}
+            <input type="file" id="af_image" accept="image/*" style="padding:0.4rem 0">
+            <div style="font-size:0.7rem;color:#697386;margin-top:0.2rem">Suggested resolution: 1024×1024 (same as current photos)${isEdit ? ' • Leave empty to keep current image' : ''}</div>
+          </div>
+          <div class="admin-field">
+            <label>Description</label>
+            <textarea id="af_desc">${isEdit ? p.description : ''}</textarea>
+          </div>
+          <div class="admin-field">
+            <label>Specs</label>
+            <div class="admin-specs-list" id="af_specs">
+              ${specs.map(([label, value], i) => `
+                <div class="admin-spec-row" data-idx="${i}">
+                  <input type="text" placeholder="Label" class="spec-label" value="${label}">
+                  <input type="text" placeholder="Value" class="spec-value" value="${value}">
+                  <button class="admin-spec-remove">&times;</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="admin-spec-add" id="af_addSpec">+ Add Spec</button>
+          </div>
+          <div class="admin-form-actions">
+            <button class="admin-save-btn" id="af_save">${isEdit ? 'Save Changes' : 'Add Product'}</button>
+            <button class="admin-cancel-btn" id="af_cancel">Cancel</button>
+          </div>
+          <div id="af_status" style="margin-top:1rem"></div>
+        </div>
+      `;
+
+      document.getElementById('af_addCategory').addEventListener('click', () => {
+        const input = document.getElementById('af_newCategory');
+        const newCat = input.value.trim();
+        if (!newCat) return;
+        const container = document.getElementById('af_categories');
+        const exists = [...container.querySelectorAll('input[type="checkbox"]')].some(cb => cb.value === newCat);
+        if (exists) {
+          input.value = '';
+          return;
+        }
+        const label = document.createElement('label');
+        label.className = 'admin-category-checkbox';
+        label.innerHTML = `<input type="checkbox" value="${newCat}" checked><span>${newCat}</span>`;
+        container.appendChild(label);
+        input.value = '';
+      });
+
+      document.querySelectorAll('input[name="stockStatus"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          const etaRow = document.getElementById('af_shippingEtaRow');
+          etaRow.style.display = radio.value === 'ships' && radio.checked ? 'block' : 'none';
+        });
+      });
+
+      document.getElementById('af_addSpec').addEventListener('click', () => {
+        const list = document.getElementById('af_specs');
+        const idx = list.children.length;
+        const row = document.createElement('div');
+        row.className = 'admin-spec-row';
+        row.dataset.idx = idx;
+        row.innerHTML = `
+          <input type="text" placeholder="Label" class="spec-label" value="">
+          <input type="text" placeholder="Value" class="spec-value" value="">
+          <button class="admin-spec-remove">&times;</button>
+        `;
+        list.appendChild(row);
+        wireSpecRemove(row);
+      });
+
+      adminBody.querySelectorAll('.admin-spec-remove').forEach(btn => wireSpecRemove(btn.closest('.admin-spec-row')));
+
+      document.getElementById('af_cancel').addEventListener('click', () => {
+        editingProductId = null;
+        renderAdminPage();
+      });
+
+      document.getElementById('af_save').addEventListener('click', async () => {
+        const saveBtn = document.getElementById('af_save');
+        const statusEl = document.getElementById('af_status');
+        const name = document.getElementById('af_name').value.trim();
+        const selectedCategories = [...document.querySelectorAll('#af_categories input[type="checkbox"]:checked')].map(cb => cb.value);
+        const cost = Number(document.getElementById('af_cost').value);
+        const badge = document.getElementById('af_badge').value.trim();
+        const link = document.getElementById('af_link').value.trim();
+        const stockStatus = document.querySelector('input[name="stockStatus"]:checked').value;
+        const shippingEta = document.getElementById('af_shippingEta').value.trim();
+        const imageFile = document.getElementById('af_image').files[0];
+        const description = document.getElementById('af_desc').value.trim();
+
+        if (!name || !cost || selectedCategories.length === 0) {
+          statusEl.innerHTML = '<div style="color:#df1b41;font-size:0.85rem">Please fill in name, cost, and select at least one category.</div>';
+          return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        statusEl.innerHTML = '';
+
+        const specRows = document.querySelectorAll('#af_specs .admin-spec-row');
+        const newSpecs = [];
+        specRows.forEach(row => {
+          const l = row.querySelector('.spec-label').value.trim();
+          const v = row.querySelector('.spec-value').value.trim();
+          if (l && v) newSpecs.push([l, v]);
+        });
+
+        const category = selectedCategories[0];
+        const categories = selectedCategories;
+
+        try {
+          let image_url = isEdit ? p.image_url : null;
+
+          if (imageFile) {
+            const fileName = Date.now() + '-' + imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const { data: uploadData, error: uploadErr } = await sbAdmin.storage
+              .from('product-images')
+              .upload(fileName, imageFile, { contentType: imageFile.type, upsert: true });
+            if (uploadErr) throw new Error('Image upload failed: ' + uploadErr.message);
+            const { data: { publicUrl } } = sbAdmin.storage.from('product-images').getPublicUrl(fileName);
+            image_url = publicUrl;
+          }
+
+          const productData = {
+            name, category, categories, cost, 
+            badge: badge || null, 
+            description, 
+            specs: newSpecs, 
+            image_url, 
+            link: link || null,
+            stock_status: stockStatus,
+            shipping_eta: stockStatus === 'ships' ? shippingEta : null
+          };
+
+          if (isEdit) {
+            const { error } = await sbAdmin.from('products').update(productData).eq('id', p.id);
+            if (error) throw new Error('Update failed: ' + error.message);
+          } else {
+            if (!image_url) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = 'Add Product';
+              statusEl.innerHTML = '<div style="color:#df1b41;font-size:0.85rem">Please select an image for the new product.</div>';
+              return;
+            }
+            const { error } = await sbAdmin.from('products').insert(productData);
+            if (error) throw new Error('Insert failed: ' + error.message);
+          }
+
+          await loadProducts();
+          editingProductId = null;
+          renderAdminPage();
+        } catch (err) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = isEdit ? 'Save Changes' : 'Add Product';
+          statusEl.innerHTML = `<div style="color:#df1b41;font-size:0.85rem">${err.message}</div>`;
+        }
+      });
+    }
+
+    function wireSpecRemove(row) {
+      row.querySelector('.admin-spec-remove').addEventListener('click', () => row.remove());
+    }
+
+    // ---- Delete Confirm ----
+
+    function showDeleteConfirm(productId) {
+      const p = products.find(x => x.id === productId);
+      if (!p) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'admin-confirm-overlay';
+      overlay.innerHTML = `
+        <div class="admin-confirm-box">
+          <div class="admin-confirm-title">Delete Product?</div>
+          <div class="admin-confirm-msg">Are you sure you want to delete <strong>${p.name}</strong>? This cannot be undone.</div>
+          <div class="admin-confirm-actions">
+            <button class="admin-confirm-delete" id="confirmDeleteYes">Delete</button>
+            <button class="admin-confirm-cancel" id="confirmDeleteNo">Cancel</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      document.getElementById('confirmDeleteYes').addEventListener('click', async () => {
+        const btn = document.getElementById('confirmDeleteYes');
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+        try {
+          const { error } = await sbAdmin.from('products').delete().eq('id', productId);
+          if (error) throw error;
+          await loadProducts();
+          overlay.remove();
+          renderAdminPage();
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = 'Delete';
+          alert('Error deleting product: ' + err.message);
+        }
+      });
+
+      document.getElementById('confirmDeleteNo').addEventListener('click', () => {
+        overlay.remove();
+      });
+
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+      });
+    }
+
     // =================== INIT ===================
 
-    renderCategories();
-    renderProducts();
+    async function init() {
+      await loadProducts();
+      renderCategories();
+      renderProducts();
+    }
+
+    init();
   </script>
 
 </body>

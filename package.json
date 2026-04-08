@@ -1,11 +1,18 @@
 {
-  "name": "furniture-hub",
+  "name": "furniture-store",
   "version": "1.0.0",
-  "private": true,
+  "description": "Furniture Store POS with Stripe Terminal",
+  "main": "server.js",
   "scripts": {
-    "start": "npx serve -s . -l $PORT"
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
-    "serve": "^14.2.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "stripe": "^14.14.0"
   }
 }
