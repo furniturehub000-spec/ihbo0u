@@ -3520,10 +3520,7 @@
             <label>ID Type <span class="required">*</span></label>
             <select id="cf_idType">
               <option value="">Select ID type...</option>
-              <option value="drivers_license" ${d.type === 'drivers_license' ? 'selected' : ''}>Driver's License</option>
               <option value="state_id" ${d.type === 'state_id' ? 'selected' : ''}>State ID</option>
-              <option value="passport" ${d.type === 'passport' ? 'selected' : ''}>Passport</option>
-              <option value="military_id" ${d.type === 'military_id' ? 'selected' : ''}>Military ID</option>
             </select>
           </div>
         </div>
@@ -3546,7 +3543,7 @@
 
     function renderEmploymentSection() {
       const d = customerFormData.employment || {};
-      const showEmployer = d.status === 'employed' || d.status === 'self_employed';
+      const showEmployer = d.status === 'employed';
       document.getElementById('formBody').innerHTML = `
         <div class="customer-form-section-desc">This helps us understand your ability to make payments.</div>
         <div class="customer-form-row">
@@ -3594,7 +3591,7 @@
       `;
 
       document.getElementById('cf_empStatus').addEventListener('change', (e) => {
-        const show = e.target.value === 'employed' || e.target.value === 'self_employed';
+        const show = e.target.value === 'employed';
         document.getElementById('employerField').style.display = show ? 'flex' : 'none';
       });
     }
@@ -3783,7 +3780,7 @@
     }
 
     function formatIdType(type) {
-      const types = { drivers_license: "Driver's License", state_id: 'State ID', passport: 'Passport', military_id: 'Military ID' };
+      const types = { state_id: 'State ID' };
       return types[type] || type || '';
     }
 
@@ -3851,7 +3848,7 @@
         case 'employment':
           if (!document.getElementById('cf_empStatus').value) markError('cf_empStatus');
           const empStatus = document.getElementById('cf_empStatus').value;
-          if ((empStatus === 'employed' || empStatus === 'self_employed') && !document.getElementById('cf_employer').value.trim()) {
+          if (empStatus === 'employed' && !document.getElementById('cf_employer').value.trim()) {
             markError('cf_employer');
           }
           if (!document.getElementById('cf_income').value) markError('cf_income');
