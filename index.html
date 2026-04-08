@@ -4579,128 +4579,327 @@
       const formattedDate = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       const formattedTime = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-      const itemsHTML = (order.items || []).map(item => `
-        <div class="order-detail-item">
-          <div class="order-detail-item-info">
-            <div class="order-detail-item-name">${item.product_name}</div>
-            <div class="order-detail-item-plan">${item.plan_label}${item.quantity > 1 ? ' × ' + item.quantity : ''}</div>
-          </div>
-          <div class="order-detail-item-price">${formatPrice(item.total_down)} down</div>
-        </div>
-      `).join('');
-
       const c = order.customer_info || {};
       const addr = c.address || {};
-      const id = c.identification || {};
+      const idInfo = c.identification || {};
       const emp = c.employment || {};
       const refs = c.references || [];
 
-      const customerHTML = c.first_name ? `
-        <div class="order-detail-section">
-          <div class="order-detail-section-title">Customer Information</div>
-          <div class="order-detail-customer-grid">
-            <div class="order-detail-customer-col">
-              <div class="order-detail-customer-label">Name</div>
-              <div class="order-detail-customer-value">${c.first_name} ${c.last_name}</div>
-              
-              <div class="order-detail-customer-label">Phone</div>
-              <div class="order-detail-customer-value">${c.phone}</div>
-              
-              <div class="order-detail-customer-label">Email</div>
-              <div class="order-detail-customer-value">${c.email}</div>
-              
-              <div class="order-detail-customer-label">Date of Birth</div>
-              <div class="order-detail-customer-value">${c.date_of_birth || 'N/A'}</div>
-            </div>
-            <div class="order-detail-customer-col">
-              <div class="order-detail-customer-label">Address</div>
-              <div class="order-detail-customer-value">
-                ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}<br>
-                ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}
-              </div>
-              
-              <div class="order-detail-customer-label">ID</div>
-              <div class="order-detail-customer-value">${formatIdType(id.type)} - ${id.number || 'N/A'} (${id.state || ''})</div>
-              
-              <div class="order-detail-customer-label">Employment</div>
-              <div class="order-detail-customer-value">${formatEmpStatus(emp.status)}${emp.employer ? ' at ' + emp.employer : ''}</div>
-              
-              <div class="order-detail-customer-label">Income</div>
-              <div class="order-detail-customer-value">${formatIncomeRange(emp.monthly_income)} (${emp.pay_frequency || ''})</div>
-            </div>
+      const itemsHTML = (order.items || []).map((item, idx) => `
+        <div class="order-detail-item" style="flex-wrap:wrap;gap:0.5rem">
+          <div class="order-detail-item-info" style="flex:1;min-width:200px">
+            <div class="order-detail-item-name">${item.product_name}</div>
+            <div class="order-detail-item-plan">${item.plan_label}</div>
           </div>
-          ${refs.length > 0 ? `
-            <div class="order-detail-customer-label" style="margin-top:0.75rem">References</div>
-            ${refs.map((ref, i) => ref.name ? `
-              <div class="order-detail-customer-value">${i + 1}. ${ref.name} (${ref.relationship}) - ${ref.phone}</div>
-            ` : '').join('')}
-          ` : ''}
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <span style="font-size:0.8rem;color:#697386">Qty:</span>
+            <input type="number" class="order-item-qty-edit" data-idx="${idx}" value="${item.quantity}" min="1" style="width:50px;padding:0.3rem;border:1px solid #d3d8de;border-radius:4px;font-size:0.85rem">
+          </div>
+          <div style="text-align:right;min-width:80px">
+            <div style="font-weight:600;font-size:0.85rem">${formatPrice(item.total_down)}</div>
+            <div style="font-size:0.75rem;color:#697386">${item.plan_months > 0 ? formatPrice(item.monthly_payment) + '/mo' : 'Paid in full'}</div>
+          </div>
         </div>
-      ` : '';
+      `).join('');
 
       const overlay = document.createElement('div');
       overlay.className = 'admin-confirm-overlay';
+      overlay.id = 'orderDetailOverlay';
       overlay.innerHTML = `
-        <div class="order-detail-box" style="max-width:600px">
-          <div class="order-detail-header">
+        <div class="order-detail-box" style="max-width:700px;max-height:90vh;overflow-y:auto">
+          <div class="order-detail-header" style="position:sticky;top:0;background:#fff;z-index:10">
             <div>
-              <div class="order-detail-title">Order ${order.order_number}</div>
+              <div class="order-detail-title">Order ${order.order_number || 'N/A'}</div>
               <div class="order-detail-time">${formattedDate} at ${formattedTime}</div>
             </div>
             <button class="order-detail-close" id="orderDetailClose">&times;</button>
           </div>
-          <div class="order-detail-status-row">
-            <span class="order-detail-status ${order.status || 'pending'}">${order.status || 'pending'}</span>
-            <span class="order-detail-delivery">${order.delivery_method === 'delivery' ? '🚚 Delivery' : '🏪 Store Pickup'}</span>
+
+          <div style="padding:0 1.5rem">
+            <div class="order-detail-status-row" style="margin-bottom:1rem">
+              <select class="order-status-select" id="orderStatusSelect" style="font-size:0.85rem;padding:0.4rem 0.6rem">
+                <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
+                <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+              </select>
+              <select id="orderDeliverySelect" style="font-size:0.85rem;padding:0.4rem 0.6rem;border:1px solid #d3d8de;border-radius:6px">
+                <option value="pickup" ${order.delivery_method === 'pickup' ? 'selected' : ''}>🏪 Store Pickup</option>
+                <option value="delivery" ${order.delivery_method === 'delivery' ? 'selected' : ''}>🚚 Delivery (+$50)</option>
+              </select>
+            </div>
           </div>
-          ${customerHTML}
+
           <div class="order-detail-section">
-            <div class="order-detail-section-title">Items</div>
+            <div class="order-detail-section-title" style="display:flex;justify-content:space-between;align-items:center">
+              Customer Information
+              <button id="editCustomerBtn" style="font-size:0.75rem;padding:0.3rem 0.6rem;background:#f6f8fa;border:1px solid #e3e8ee;border-radius:4px;cursor:pointer">Edit</button>
+            </div>
+            <div id="customerInfoView">
+              ${c.first_name ? `
+                <div class="order-detail-customer-grid">
+                  <div class="order-detail-customer-col">
+                    <div class="order-detail-customer-label">Name</div>
+                    <div class="order-detail-customer-value">${c.first_name || ''} ${c.last_name || ''}</div>
+                    
+                    <div class="order-detail-customer-label">Phone</div>
+                    <div class="order-detail-customer-value">${c.phone || 'N/A'}</div>
+                    
+                    <div class="order-detail-customer-label">Email</div>
+                    <div class="order-detail-customer-value">${c.email || 'N/A'}</div>
+                    
+                    <div class="order-detail-customer-label">Date of Birth</div>
+                    <div class="order-detail-customer-value">${c.date_of_birth || 'N/A'}</div>
+                  </div>
+                  <div class="order-detail-customer-col">
+                    <div class="order-detail-customer-label">Address</div>
+                    <div class="order-detail-customer-value">
+                      ${addr.street || 'N/A'}${addr.unit ? ', ' + addr.unit : ''}<br>
+                      ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}
+                    </div>
+                    
+                    <div class="order-detail-customer-label">ID</div>
+                    <div class="order-detail-customer-value">${formatIdType(idInfo.type)} - ${idInfo.number || 'N/A'} (${idInfo.state || ''})</div>
+                    
+                    <div class="order-detail-customer-label">Employment</div>
+                    <div class="order-detail-customer-value">${formatEmpStatus(emp.status)}${emp.employer ? ' at ' + emp.employer : ''}</div>
+                    
+                    <div class="order-detail-customer-label">Income</div>
+                    <div class="order-detail-customer-value">${formatIncomeRange(emp.monthly_income)} (${emp.pay_frequency || 'N/A'})</div>
+                  </div>
+                </div>
+                ${refs.length > 0 ? `
+                  <div class="order-detail-customer-label" style="margin-top:0.75rem">References</div>
+                  ${refs.map((ref, i) => ref.name ? `
+                    <div class="order-detail-customer-value">${i + 1}. ${ref.name} (${ref.relationship || 'N/A'}) - ${ref.phone || 'N/A'}</div>
+                  ` : '').join('')}
+                ` : ''}
+              ` : '<div style="color:#697386;font-size:0.88rem">No customer information on file</div>'}
+            </div>
+            <div id="customerInfoEdit" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">First Name</label>
+                  <input type="text" id="edit_firstName" value="${c.first_name || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">Last Name</label>
+                  <input type="text" id="edit_lastName" value="${c.last_name || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">Phone</label>
+                  <input type="tel" id="edit_phone" value="${c.phone || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">Email</label>
+                  <input type="email" id="edit_email" value="${c.email || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">Date of Birth</label>
+                  <input type="date" id="edit_dob" value="${c.date_of_birth || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">ID Number</label>
+                  <input type="text" id="edit_idNumber" value="${idInfo.number || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+              </div>
+              <div style="margin-top:0.75rem">
+                <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">Street Address</label>
+                <input type="text" id="edit_street" value="${addr.street || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-top:0.75rem">
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">City</label>
+                  <input type="text" id="edit_city" value="${addr.city || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">State</label>
+                  <input type="text" id="edit_state" value="${addr.state || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem" maxlength="2">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">ZIP</label>
+                  <input type="text" id="edit_zip" value="${addr.zip || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.75rem">
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">Employer</label>
+                  <input type="text" id="edit_employer" value="${emp.employer || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+                <div>
+                  <label style="display:block;font-size:0.75rem;color:#697386;margin-bottom:0.2rem">Monthly Income</label>
+                  <input type="text" id="edit_income" value="${emp.monthly_income || ''}" style="width:100%;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-detail-section">
+            <div class="order-detail-section-title">Items (${(order.items || []).length})</div>
             ${itemsHTML}
           </div>
+
           <div class="order-detail-totals">
             <div class="order-detail-total-row">
-              <span>Subtotal</span>
-              <span>${formatPrice(order.subtotal)}</span>
+              <span>Subtotal (Down Payments)</span>
+              <span id="orderSubtotalDisplay">${formatPrice(order.subtotal)}</span>
             </div>
-            ${order.delivery_fee > 0 ? `
-              <div class="order-detail-total-row">
-                <span>Delivery Fee</span>
-                <span>${formatPrice(order.delivery_fee)}</span>
-              </div>
-            ` : ''}
+            <div class="order-detail-total-row">
+              <span>Delivery Fee</span>
+              <span id="orderDeliveryFeeDisplay">${formatPrice(order.delivery_fee || 0)}</span>
+            </div>
             <div class="order-detail-total-row final">
               <span>Total Due Today</span>
-              <span>${formatPrice(order.total_due_today)}</span>
+              <span id="orderTotalDisplay">${formatPrice(order.total_due_today)}</span>
             </div>
           </div>
-          <div class="order-detail-actions">
-            <select class="order-status-select" id="orderStatusSelect">
-              <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
-              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
-              <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
-              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-            </select>
-            <button class="order-status-save" id="orderStatusSave">Update Status</button>
+
+          <div class="order-detail-section" style="background:#f6f8fa;border-radius:8px;margin:1rem 1.5rem">
+            <div class="order-detail-section-title">Order Notes</div>
+            <textarea id="orderNotes" placeholder="Add internal notes about this order..." style="width:100%;min-height:60px;padding:0.5rem;border:1px solid #d3d8de;border-radius:6px;font-size:0.85rem;resize:vertical">${order.notes || ''}</textarea>
+          </div>
+
+          <div class="order-detail-actions" style="position:sticky;bottom:0;background:#fff;border-top:1px solid #e3e8ee;padding:1rem 1.5rem;display:flex;gap:0.5rem;justify-content:space-between">
+            <button id="deleteOrderBtn" style="padding:0.6rem 1rem;background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;font-size:0.85rem;cursor:pointer">Delete Order</button>
+            <div style="display:flex;gap:0.5rem">
+              <button id="cancelOrderEdit" style="padding:0.6rem 1rem;background:#f6f8fa;color:#3c4257;border:1px solid #e3e8ee;border-radius:6px;font-size:0.85rem;cursor:pointer">Cancel</button>
+              <button id="saveOrderBtn" style="padding:0.6rem 1.5rem;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer">Save Changes</button>
+            </div>
           </div>
         </div>
       `;
       document.body.appendChild(overlay);
 
+      // Close handlers
       document.getElementById('orderDetailClose').addEventListener('click', () => overlay.remove());
+      document.getElementById('cancelOrderEdit').addEventListener('click', () => overlay.remove());
       overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
-      document.getElementById('orderStatusSave').addEventListener('click', async () => {
-        const newStatus = document.getElementById('orderStatusSelect').value;
-        const btn = document.getElementById('orderStatusSave');
+      // Edit customer info toggle
+      document.getElementById('editCustomerBtn').addEventListener('click', () => {
+        const viewEl = document.getElementById('customerInfoView');
+        const editEl = document.getElementById('customerInfoEdit');
+        const btn = document.getElementById('editCustomerBtn');
+        if (editEl.style.display === 'none') {
+          viewEl.style.display = 'none';
+          editEl.style.display = 'block';
+          btn.textContent = 'Cancel Edit';
+        } else {
+          viewEl.style.display = 'block';
+          editEl.style.display = 'none';
+          btn.textContent = 'Edit';
+        }
+      });
+
+      // Update delivery fee display when changed
+      document.getElementById('orderDeliverySelect').addEventListener('change', (e) => {
+        const isDelivery = e.target.value === 'delivery';
+        const newFee = isDelivery ? 50 : 0;
+        document.getElementById('orderDeliveryFeeDisplay').textContent = formatPrice(newFee);
+        const subtotal = order.subtotal || 0;
+        document.getElementById('orderTotalDisplay').textContent = formatPrice(subtotal + newFee);
+      });
+
+      // Save all changes
+      document.getElementById('saveOrderBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('saveOrderBtn');
         btn.disabled = true;
         btn.textContent = 'Saving...';
 
-        const { error } = await sbAdmin.from('orders').update({ status: newStatus }).eq('id', orderId);
-        if (error) {
-          alert('Error updating status: ' + error.message);
+        try {
+          // Gather updated data
+          const newStatus = document.getElementById('orderStatusSelect').value;
+          const newDeliveryMethod = document.getElementById('orderDeliverySelect').value;
+          const newDeliveryFee = newDeliveryMethod === 'delivery' ? 50 : 0;
+          const newNotes = document.getElementById('orderNotes').value;
+
+          // Update item quantities
+          const updatedItems = [...(order.items || [])];
+          document.querySelectorAll('.order-item-qty-edit').forEach(input => {
+            const idx = parseInt(input.dataset.idx);
+            const newQty = parseInt(input.value) || 1;
+            if (updatedItems[idx]) {
+              updatedItems[idx].quantity = newQty;
+              updatedItems[idx].total_down = updatedItems[idx].down_payment * newQty;
+            }
+          });
+
+          // Recalculate subtotal
+          const newSubtotal = updatedItems.reduce((sum, item) => sum + (item.total_down || 0), 0);
+          const newTotal = newSubtotal + newDeliveryFee;
+
+          // Update customer info if editing
+          let updatedCustomerInfo = order.customer_info || {};
+          if (document.getElementById('customerInfoEdit').style.display !== 'none') {
+            updatedCustomerInfo = {
+              ...updatedCustomerInfo,
+              first_name: document.getElementById('edit_firstName').value.trim(),
+              last_name: document.getElementById('edit_lastName').value.trim(),
+              phone: document.getElementById('edit_phone').value.trim(),
+              email: document.getElementById('edit_email').value.trim(),
+              date_of_birth: document.getElementById('edit_dob').value,
+              address: {
+                ...(updatedCustomerInfo.address || {}),
+                street: document.getElementById('edit_street').value.trim(),
+                city: document.getElementById('edit_city').value.trim(),
+                state: document.getElementById('edit_state').value.trim().toUpperCase(),
+                zip: document.getElementById('edit_zip').value.trim()
+              },
+              identification: {
+                ...(updatedCustomerInfo.identification || {}),
+                number: document.getElementById('edit_idNumber').value.trim()
+              },
+              employment: {
+                ...(updatedCustomerInfo.employment || {}),
+                employer: document.getElementById('edit_employer').value.trim(),
+                monthly_income: document.getElementById('edit_income').value.trim()
+              }
+            };
+          }
+
+          const updateData = {
+            status: newStatus,
+            delivery_method: newDeliveryMethod,
+            delivery_fee: newDeliveryFee,
+            items: updatedItems,
+            subtotal: newSubtotal,
+            total_due_today: newTotal,
+            customer_info: updatedCustomerInfo,
+            notes: newNotes
+          };
+
+          const { error } = await sbAdmin.from('orders').update(updateData).eq('id', orderId);
+          
+          if (error) {
+            alert('Error saving: ' + error.message);
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+          } else {
+            overlay.remove();
+            renderAdminOrders();
+          }
+
+        } catch (err) {
+          alert('Error: ' + err.message);
           btn.disabled = false;
-          btn.textContent = 'Update Status';
+          btn.textContent = 'Save Changes';
+        }
+      });
+
+      // Delete order
+      document.getElementById('deleteOrderBtn').addEventListener('click', async () => {
+        if (!confirm(`Are you sure you want to delete Order ${order.order_number}? This cannot be undone.`)) return;
+        
+        const btn = document.getElementById('deleteOrderBtn');
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        const { error } = await sbAdmin.from('orders').delete().eq('id', orderId);
+        
+        if (error) {
+          alert('Error deleting: ' + error.message);
+          btn.disabled = false;
+          btn.textContent = 'Delete Order';
         } else {
           overlay.remove();
           renderAdminOrders();

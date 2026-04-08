@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Supabase Setup - Furniture Hub</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f6f8fa; min-height: 100vh; padding: 2rem; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #0a2540; margin-bottom: 0.5rem; }
+    .subtitle { color: #697386; margin-bottom: 2rem; }
+    .step { background: #fff; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .step h2 { font-size: 1rem; color: #0a2540; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .step-num { background: #635bff; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; }
+    .step p { color: #697386; font-size: 0.9rem; margin-bottom: 1rem; }
+    pre { background: #1a1f36; color: #e3e8ee; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; white-space: pre-wrap; }
+    button { background: #635bff; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+    button:hover { background: #5851e6; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .status { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.info { background: #cce5ff; color: #004085; }
+    .copy-btn { background: #3c4257; font-size: 0.75rem; padding: 0.4rem 0.8rem; margin-top: 0.5rem; }
+    .progress { margin-top: 1rem; }
+    .progress-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; font-size: 0.85rem; color: #3c4257; }
+    .progress-item.done { color: #28a745; }
+    .progress-item.error { color: #dc3545; }
+    .check { color: #28a745; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Supabase Setup</h1>
+    <p class="subtitle">Follow these steps to set up your Furniture Hub database</p>
+
+    <div class="step">
+      <h2><span class="step-num">1</span> Run SQL in Supabase Dashboard</h2>
+      <p>Copy the SQL below and paste it into your <a href="https://supabase.com/dashboard/project/vgvsrkewfrzcqrkfdwxo/sql/new" target="_blank">Supabase SQL Editor</a>. Click "Run" to create the tables and policies.</p>
+      <pre id="sqlCode">-- Create products table
+CREATE TABLE IF NOT EXISTS products (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  cost INTEGER NOT NULL,
+  description TEXT,
+  badge TEXT,
+  image_url TEXT,
+  specs JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create orders table
+CREATE TABLE IF NOT EXISTS orders (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  items JSONB NOT NULL,
+  total_due_today INTEGER NOT NULL,
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+-- Allow anyone to read products
+DROP POLICY IF EXISTS "Public can read products" ON products;
+CREATE POLICY "Public can read products" ON products FOR SELECT USING (true);
+
+-- Allow authenticated/service to insert/update/delete products
+DROP POLICY IF EXISTS "Service role manages products" ON products;
+CREATE POLICY "Service role manages products" ON products FOR ALL USING (true);
+
+-- Allow service role full access to orders
+DROP POLICY IF EXISTS "Service role manages orders" ON orders;
+CREATE POLICY "Service role manages orders" ON orders FOR ALL USING (true);</pre>
+      <button class="copy-btn" onclick="copySQL()">Copy SQL</button>
+    </div>
+
+    <div class="step">
+      <h2><span class="step-num">2</span> Create Storage Bucket</h2>
+      <p>Go to <a href="https://supabase.com/dashboard/project/vgvsrkewfrzcqrkfdwxo/storage/buckets" target="_blank">Storage</a> in your Supabase dashboard, click "New bucket", name it <code>product-images</code>, and check "Public bucket".</p>
+    </div>
+
+    <div class="step">
+      <h2><span class="step-num">3</span> Upload Images &amp; Seed Products</h2>
+      <p>After completing steps 1 and 2, click the button below to upload all product images and seed the database.</p>
+      <button id="seedBtn" onclick="seedDatabase()">Upload Images &amp; Seed Products</button>
+      <div id="progress" class="progress"></div>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://vgvsrkewfrzcqrkfdwxo.supabase.co';
+    const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZndnNya2V3ZnJ6Y3Fya2Zkd3hvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ5MDc3MiwiZXhwIjoyMDkxMDY2NzcyfQ.BadZUZbj4xvOXn4_WwiEarZRKQ3gDzgBtGsrs11KjQI';
+
+    const sb = supabase.createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    function copySQL() {
+      navigator.clipboard.writeText(document.getElementById('sqlCode').textContent);
+      alert('SQL copied to clipboard!');
+    }
+
+    const imageFiles = [
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_35_18 PM.png', name: 'hudson-accent-chair.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_35_37 PM.png', name: 'maplewood-coffee-table.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_36_04 PM.png', name: 'hartley-coffee-table.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_36_40 PM.png', name: 'brookfield-tv-console.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_37_36 PM.png', name: 'elara-bed-frame.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_53_24 PM.png', name: 'camden-nightstand.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_55_06 PM.png', name: 'ashford-dresser.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_56_38 PM.png', name: '55-inch-tv.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_57_15 PM.png', name: 'xbox-series-s.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 09_58_23 PM.png', name: 'oakwood-dining-table.png' },
+      { file: 'PRODUCT PHOTOS/ChatGPT Image Mar 30, 2026, 10_00_10 PM.png', name: 'whitaker-desk.png' },
+      { file: 'PRODUCT PHOTOS/d9b5b4af-53b5-405a-bbed-06078f3f1f7d.png', name: 'hudson-sofa.png' }
+    ];
+
+    const productsData = [
+      { name: 'Hudson Accent Chair', category: 'Living Room', cost: 425, description: 'Sink into the Hudson Accent Chair, upholstered in a rich charcoal fabric with clean modern lines. Tapered solid wood legs and plush cushioning make it the perfect reading nook companion.', specs: [['Dimensions','34"W x 35"D x 33"H'],['Material','Polyester blend fabric'],['Frame','Kiln-dried hardwood'],['Color','Charcoal Black'],['Weight Capacity','300 lbs'],['Assembly','Legs only']], badge: 'In Stock - Ready to Ship', imageIdx: 0 },
+      { name: 'Maplewood Round Coffee Table', category: 'Living Room', cost: 300, description: 'The Maplewood Round Coffee Table features a warm natural oak finish with a spacious lower shelf for books and decor. Its rounded silhouette softens any living space.', specs: [['Dimensions','42" diameter x 18"H'],['Material','Solid oak veneer'],['Finish','Natural matte'],['Lower Shelf','Yes'],['Weight','45 lbs'],['Assembly','Required']], badge: 'In Stock - Ready to Ship', imageIdx: 1 },
+      { name: 'Hartley Rectangular Coffee Table', category: 'Living Room', cost: 275, description: 'A versatile rectangular coffee table crafted from natural oak with a generous lower shelf. Clean lines and warm tones make the Hartley a timeless centerpiece for your living room.', specs: [['Dimensions','48"W x 26"D x 18"H'],['Material','Solid oak with veneer top'],['Finish','Natural satin'],['Lower Shelf','Yes'],['Weight','52 lbs'],['Assembly','Required']], badge: 'In Stock - Ready to Ship', imageIdx: 2 },
+      { name: 'Brookfield TV Console', category: 'Living Room', cost: 625, description: 'The Brookfield TV Console accommodates up to 75" screens with two paneled cabinet doors, open shelving, and two drawers for hidden storage. Crafted from solid oak with matte black hardware.', specs: [['Dimensions','72"W x 18"D x 24"H'],['Material','Solid oak'],['Finish','Natural oak'],['Storage','2 cabinets, 3 shelves, 2 drawers'],['Max TV Size','75"'],['Assembly','Minimal']], badge: 'Best Seller', imageIdx: 3 },
+      { name: 'Elara Upholstered Bed Frame', category: 'Bedroom', cost: 700, description: 'The Elara bed frame pairs a solid oak frame with a linen-upholstered headboard for a warm, inviting look. Sturdy slat support means no box spring needed. Available in Queen and King.', specs: [['Size','Queen (shown)'],['Dimensions','65"W x 86"D x 48"H'],['Frame','Solid oak'],['Headboard','Linen upholstered'],['Slats','Included'],['Box Spring','Not required']], badge: 'In Stock - Ready to Ship', imageIdx: 4 },
+      { name: 'Camden 2-Drawer Nightstand', category: 'Bedroom', cost: 175, description: 'The Camden Nightstand keeps your bedside essentials organized with two smooth-gliding drawers and a spacious tabletop. Solid oak construction with matte black knobs.', specs: [['Dimensions','22"W x 16"D x 26"H'],['Material','Solid oak'],['Drawers','2 with metal glides'],['Hardware','Matte black knobs'],['Weight','35 lbs'],['Assembly','Required']], badge: 'In Stock - Ready to Ship', imageIdx: 5 },
+      { name: 'Ashford 6-Drawer Dresser', category: 'Bedroom', cost: 550, description: 'The Ashford Dresser offers generous storage with six full-width drawers on smooth metal glides. Clean shaker-style lines in natural oak complement any bedroom.', specs: [['Dimensions','60"W x 18"D x 34"H'],['Material','Solid oak'],['Drawers','6 with metal glides'],['Hardware','Matte black knobs'],['Weight','120 lbs'],['Assembly','Minimal']], badge: 'Best Seller', imageIdx: 6 },
+      { name: '55" 4K Smart Television', category: 'Living Room', cost: 215, description: 'Crystal-clear 4K UHD display with HDR10 support, built-in smart TV platform, and sleek bezel-less design. Perfect paired with our Brookfield TV Console.', specs: [['Screen Size','55"'],['Resolution','4K UHD (3840x2160)'],['HDR','HDR10'],['Smart TV','Yes - Built-in'],['Ports','3x HDMI, 2x USB'],['Stand Width','48"']], badge: 'In Stock - Ready to Ship', imageIdx: 7 },
+      { name: 'Xbox Series S Console', category: 'Gaming', cost: 150, description: 'Next-gen gaming in the smallest Xbox ever. Includes wireless controller, 512GB SSD, and access to thousands of games. The perfect addition to any entertainment setup.', specs: [['Storage','512GB SSD'],['Resolution','Up to 1440p'],['FPS','Up to 120fps'],['Includes','Console + Wireless Controller'],['Color','Robot White'],['Connectivity','Wi-Fi, Bluetooth, HDMI 2.1']], badge: 'In Stock - Ready to Ship', imageIdx: 8 },
+      { name: 'Oakwood Dining Table', category: 'Dining', cost: 450, description: 'Gather around the Oakwood Dining Table, crafted from solid oak with a clean, minimalist profile. Comfortably seats six. The warm honey tone brightens any dining space.', specs: [['Dimensions','72"W x 36"D x 30"H'],['Material','Solid oak'],['Finish','Honey natural'],['Seating','Up to 6'],['Weight','85 lbs'],['Assembly','Legs only']], badge: 'In Stock - Ready to Ship', imageIdx: 9 },
+      { name: 'Whitaker Writing Desk', category: 'Office', cost: 325, description: 'The Whitaker Writing Desk features a generous work surface with three storage drawers on smooth metal glides. Solid oak construction built to last for years of daily use.', specs: [['Dimensions','54"W x 24"D x 30"H'],['Material','Solid oak'],['Drawers','3 with metal glides'],['Hardware','Matte black knobs'],['Weight','68 lbs'],['Assembly','Required']], badge: 'New Arrival', imageIdx: 10 },
+      { name: 'Hudson 3-Seat Sofa', category: 'Living Room', cost: 800, description: 'The flagship of the Hudson collection. This generous 3-seat sofa features deep cushions, tapered legs, and durable charcoal upholstery. Pairs perfectly with the Hudson Accent Chair.', specs: [['Dimensions','84"W x 36"D x 33"H'],['Material','Polyester blend fabric'],['Frame','Kiln-dried hardwood'],['Cushions','High-resilience foam'],['Color','Charcoal Black'],['Assembly','Legs only']], badge: 'Best Seller', imageIdx: 11 }
+    ];
+
+    function addProgress(text, status = '') {
+      const el = document.createElement('div');
+      el.className = 'progress-item ' + status;
+      el.innerHTML = (status === 'done' ? '<span class="check">✓</span> ' : status === 'error' ? '✗ ' : '• ') + text;
+      document.getElementById('progress').appendChild(el);
+    }
+
+    function showStatus(text, type) {
+      document.getElementById('status').innerHTML = `<div class="status ${type}">${text}</div>`;
+    }
+
+    async function seedDatabase() {
+      const btn = document.getElementById('seedBtn');
+      btn.disabled = true;
+      btn.textContent = 'Working...';
+      document.getElementById('progress').innerHTML = '';
+      document.getElementById('status').innerHTML = '';
+
+      try {
+        // Check if table exists
+        addProgress('Checking if products table exists...');
+        const { data: existingProducts, error: checkErr } = await sb.from('products').select('id').limit(1);
+        if (checkErr) {
+          addProgress('Products table not found. Please run the SQL in Step 1 first.', 'error');
+          showStatus('Error: Please complete Step 1 first (run the SQL in Supabase dashboard)', 'error');
+          btn.disabled = false;
+          btn.textContent = 'Upload Images & Seed Products';
+          return;
+        }
+        addProgress('Products table exists', 'done');
+
+        // Check if bucket exists
+        addProgress('Checking storage bucket...');
+        const { data: buckets } = await sb.storage.listBuckets();
+        const bucketExists = buckets && buckets.some(b => b.name === 'product-images');
+        if (!bucketExists) {
+          addProgress('Creating product-images bucket...');
+          const { error: bucketErr } = await sb.storage.createBucket('product-images', { public: true });
+          if (bucketErr && !bucketErr.message.includes('already exists')) {
+            addProgress('Could not create bucket: ' + bucketErr.message, 'error');
+            showStatus('Error: Please create the "product-images" bucket manually in Step 2', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Upload Images & Seed Products';
+            return;
+          }
+        }
+        addProgress('Storage bucket ready', 'done');
+
+        // Check if products already seeded
+        const { data: currentProducts } = await sb.from('products').select('id');
+        if (currentProducts && currentProducts.length > 0) {
+          addProgress('Products already exist in database (' + currentProducts.length + ' products)', 'done');
+          showStatus('Database already has products! Setup complete.', 'success');
+          btn.disabled = false;
+          btn.textContent = 'Upload Images & Seed Products';
+          return;
+        }
+
+        // Upload images
+        addProgress('Uploading product images (this will take a moment)...');
+        const imageUrls = [];
+        
+        for (let i = 0; i < imageFiles.length; i++) {
+          const img = imageFiles[i];
+          addProgress(`  Uploading ${img.name}...`);
+          
+          // Fetch the local image file
+          const response = await fetch(img.file);
+          if (!response.ok) {
+            addProgress(`  Could not load ${img.file} - file may not exist`, 'error');
+            imageUrls.push(null);
+            continue;
+          }
+          const blob = await response.blob();
+          
+          // Upload to Supabase Storage
+          const { data, error } = await sb.storage.from('product-images').upload(img.name, blob, {
+            contentType: 'image/png',
+            upsert: true
+          });
+          
+          if (error) {
+            addProgress(`  Error uploading ${img.name}: ${error.message}`, 'error');
+            imageUrls.push(null);
+          } else {
+            const { data: { publicUrl } } = sb.storage.from('product-images').getPublicUrl(img.name);
+            imageUrls.push(publicUrl);
+            addProgress(`  Uploaded ${img.name}`, 'done');
+          }
+        }
+
+        // Insert products
+        addProgress('Inserting products into database...');
+        const productsToInsert = productsData.map((p, i) => ({
+          name: p.name,
+          category: p.category,
+          cost: p.cost,
+          description: p.description,
+          badge: p.badge,
+          specs: p.specs,
+          image_url: imageUrls[p.imageIdx] || null
+        }));
+
+        const { error: insertErr } = await sb.from('products').insert(productsToInsert);
+        if (insertErr) {
+          addProgress('Error inserting products: ' + insertErr.message, 'error');
+          showStatus('Error inserting products: ' + insertErr.message, 'error');
+        } else {
+          addProgress('All products inserted!', 'done');
+          showStatus('Setup complete! Your database is ready. You can now close this page and use the main app.', 'success');
+        }
+
+      } catch (err) {
+        addProgress('Error: ' + err.message, 'error');
+        showStatus('Error: ' + err.message, 'error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Upload Images & Seed Products';
+    }
+  </script>
+</body>
+</html>
