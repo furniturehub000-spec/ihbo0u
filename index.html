@@ -1751,12 +1751,12 @@
       color: #fff;
     }
 
-    /* ===================== ADMIN SCREEN ===================== */
+    /* ===================== ADMIN SCREEN (Dark Theme) ===================== */
 
     #adminScreen {
       position: fixed;
       inset: 0;
-      background: #f6f8fa;
+      background: #0d0d0d;
       z-index: 400;
       display: flex;
       flex-direction: row;
@@ -1765,8 +1765,9 @@
       transition: opacity 0.4s ease, visibility 0.4s ease;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
-      color: #3c4257;
+      color: #e5e5e5;
       -webkit-font-smoothing: antialiased;
+      letter-spacing: 0.01em;
     }
 
     #adminScreen.visible {
@@ -1776,77 +1777,80 @@
 
     .admin-sidebar {
       width: 220px;
-      background: #0a2540;
+      background: #161616;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      border-right: 1px solid #2a2a2a;
     }
 
     .admin-sidebar-brand {
-      padding: 1.1rem 1rem 0.9rem;
+      padding: 1.25rem 1rem 1rem;
+      border-bottom: 1px solid #2a2a2a;
     }
 
     .admin-sidebar-logo {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 1rem;
       color: #fff;
-      margin-bottom: 0.1rem;
-      letter-spacing: -0.01em;
+      margin-bottom: 0.15rem;
+      letter-spacing: 0.01em;
     }
 
     .admin-sidebar-sub {
-      font-size: 0.65rem;
-      color: rgba(255,255,255,0.35);
-      font-weight: 500;
+      font-size: 0.7rem;
+      color: #666;
+      font-weight: 400;
       letter-spacing: 0.02em;
     }
 
     .admin-sidebar-nav {
       flex: 1;
-      padding: 0.5rem 0.5rem;
+      padding: 0.75rem 0.6rem;
       display: flex;
       flex-direction: column;
-      gap: 1px;
+      gap: 2px;
     }
 
     .admin-nav-section {
       font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      color: rgba(255,255,255,0.3);
-      padding: 1rem 0.65rem 0.35rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: #555;
+      text-transform: uppercase;
+      padding: 1.25rem 0.6rem 0.4rem;
     }
 
     .admin-nav-item {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      padding: 0.45rem 0.65rem;
-      border-radius: 6px;
+      gap: 0.65rem;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
       border: none;
       background: transparent;
-      color: rgba(255,255,255,0.6);
+      color: #8b8b8b;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.81rem;
-      font-weight: 500;
+      font-size: 0.82rem;
+      font-weight: 450;
       cursor: pointer;
       touch-action: manipulation;
-      transition: all 0.1s ease;
+      transition: all 0.15s ease;
       text-align: left;
       width: 100%;
-      letter-spacing: -0.005em;
+      letter-spacing: 0.01em;
     }
 
     .admin-nav-item:hover {
-      background: rgba(255,255,255,0.07);
-      color: rgba(255,255,255,0.9);
+      background: #1e1e1e;
+      color: #e5e5e5;
     }
 
     .admin-nav-item.active {
-      background: rgba(255,255,255,0.12);
+      background: #252525;
       color: #fff;
-      font-weight: 600;
+      font-weight: 500;
     }
 
     .admin-nav-item svg {
@@ -1854,49 +1858,51 @@
       height: 16px;
       fill: none;
       stroke: currentColor;
-      stroke-width: 1.8;
+      stroke-width: 1.75;
       stroke-linecap: round;
       stroke-linejoin: round;
       flex-shrink: 0;
-      opacity: 0.7;
+      opacity: 0.6;
     }
 
+    .admin-nav-item:hover svg,
     .admin-nav-item.active svg { opacity: 1; }
 
     .admin-sidebar-footer {
-      padding: 0.6rem 0.5rem;
-      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 0.75rem 0.6rem;
+      border-top: 1px solid #2a2a2a;
     }
 
     .admin-logout-btn {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
+      gap: 0.65rem;
       width: 100%;
-      padding: 0.45rem 0.65rem;
-      border-radius: 6px;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
       border: none;
       background: transparent;
-      color: rgba(255,255,255,0.4);
+      color: #666;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.81rem;
-      font-weight: 500;
+      font-size: 0.82rem;
+      font-weight: 450;
       cursor: pointer;
       touch-action: manipulation;
       text-align: left;
+      transition: all 0.15s;
     }
 
-    .admin-logout-btn:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.05); }
+    .admin-logout-btn:hover { color: #e5e5e5; background: #1e1e1e; }
 
     .admin-logout-btn svg {
       width: 16px;
       height: 16px;
       fill: none;
       stroke: currentColor;
-      stroke-width: 1.8;
+      stroke-width: 1.75;
       stroke-linecap: round;
       stroke-linejoin: round;
-      opacity: 0.5;
+      opacity: 0.6;
     }
 
     .admin-main {
@@ -1905,25 +1911,25 @@
       flex-direction: column;
       min-width: 0;
       overflow: hidden;
-      background: #f6f8fa;
+      background: #0d0d0d;
     }
 
     .admin-main-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.1rem 2rem;
-      background: #fff;
-      border-bottom: 1px solid #e3e8ee;
+      padding: 1.25rem 2rem;
+      background: #131313;
+      border-bottom: 1px solid #2a2a2a;
       flex-shrink: 0;
     }
 
     .admin-main-title {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-weight: 700;
-      font-size: 1.25rem;
-      color: #0a2540;
-      letter-spacing: -0.02em;
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: #fff;
+      letter-spacing: 0.01em;
     }
 
     .admin-body {
@@ -1938,173 +1944,176 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.8rem;
+      margin-bottom: 1rem;
     }
 
     .admin-product-count {
-      font-size: 0.82rem;
-      color: #697386;
+      font-size: 0.85rem;
+      color: #8b8b8b;
     }
 
     .admin-add-btn {
-      padding: 0.45rem 1rem;
-      border-radius: 6px;
+      padding: 0.5rem 1.1rem;
+      border-radius: 8px;
       border: none;
-      background: #635bff;
-      color: #fff;
+      background: #fff;
+      color: #0d0d0d;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       touch-action: manipulation;
-      letter-spacing: -0.005em;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.04);
-      transition: background 0.15s;
+      letter-spacing: 0.01em;
+      transition: all 0.15s;
     }
 
-    .admin-add-btn:hover { background: #5851e6; }
-    .admin-add-btn:active { background: #4d45d1; }
+    .admin-add-btn:hover { background: #e5e5e5; }
+    .admin-add-btn:active { background: #d5d5d5; }
 
     .admin-product-table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
-      border-radius: 8px;
+      background: #1a1a1a;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      border: 1px solid #2a2a2a;
     }
 
     .admin-product-table th {
       text-align: left;
-      padding: 0.6rem 0.9rem;
+      padding: 0.75rem 1rem;
       font-size: 0.72rem;
-      font-weight: 600;
+      font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #697386;
-      background: #f6f8fa;
-      border-bottom: 1px solid #e3e8ee;
+      letter-spacing: 0.05em;
+      color: #666;
+      background: #161616;
+      border-bottom: 1px solid #2a2a2a;
     }
 
     .admin-product-row {
-      background: #fff;
-      transition: background 0.1s;
+      background: #1a1a1a;
+      transition: background 0.15s;
     }
 
-    .admin-product-row:hover { background: #f8f9fb; }
+    .admin-product-row:hover { background: #222; }
 
     .admin-product-row td {
-      padding: 0.6rem 0.9rem;
+      padding: 0.75rem 1rem;
       font-size: 0.85rem;
-      color: #3c4257;
+      color: #e5e5e5;
       vertical-align: middle;
-      border-bottom: 1px solid #f0f2f5;
+      border-bottom: 1px solid #252525;
     }
 
     .admin-product-row td:first-child { border-radius: 0; }
     .admin-product-row td:last-child { border-radius: 0; }
 
     .admin-thumb {
-      width: 40px;
-      height: 40px;
-      border-radius: 6px;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
       object-fit: cover;
-      background: #f6f8fa;
-      border: 1px solid #e3e8ee;
+      background: #252525;
+      border: 1px solid #333;
     }
 
     .admin-row-actions {
       display: flex;
-      gap: 0.35rem;
+      gap: 0.4rem;
     }
 
     .admin-edit-btn, .admin-delete-btn {
-      padding: 0.3rem 0.7rem;
+      padding: 0.35rem 0.8rem;
       border-radius: 6px;
-      border: 1px solid #e3e8ee;
-      background: #fff;
+      border: 1px solid #333;
+      background: #252525;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;
       touch-action: manipulation;
-      color: #3c4257;
-      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
-      transition: all 0.1s;
+      color: #e5e5e5;
+      transition: all 0.15s;
     }
 
-    .admin-edit-btn:hover { background: #f6f8fa; }
+    .admin-edit-btn:hover { background: #333; }
 
     .admin-delete-btn {
-      color: #df1b41;
-      border-color: rgba(223,27,65,0.2);
+      color: #ef4444;
+      border-color: rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.1);
     }
 
-    .admin-delete-btn:hover { background: #fef0f3; }
+    .admin-delete-btn:hover { background: rgba(239,68,68,0.2); }
 
     /* Add/Edit Form */
 
     .admin-form {
       max-width: 680px;
-      background: #fff;
-      border-radius: 8px;
-      padding: 1.5rem 1.8rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 1.75rem 2rem;
+      border: 1px solid #2a2a2a;
     }
 
     .admin-form-title {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 1.1rem;
-      color: #0a2540;
-      margin-bottom: 1.2rem;
-      letter-spacing: -0.01em;
+      color: #fff;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.01em;
     }
 
     .admin-field {
-      margin-bottom: 0.9rem;
+      margin-bottom: 1rem;
     }
 
     .admin-field label {
       display: block;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: #3c4257;
-      margin-bottom: 0.3rem;
-      letter-spacing: -0.005em;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #8b8b8b;
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.01em;
     }
 
     .admin-field input,
     .admin-field select,
     .admin-field textarea {
       width: 100%;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #e3e8ee;
-      border-radius: 6px;
+      padding: 0.6rem 0.85rem;
+      border: 1px solid #333;
+      border-radius: 8px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.85rem;
-      color: #0a2540;
-      background: #fff;
+      font-size: 0.88rem;
+      color: #fff;
+      background: #252525;
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
-      box-shadow: 0 1px 1px rgba(0,0,0,0.03);
     }
 
     .admin-field input:focus,
     .admin-field select:focus,
     .admin-field textarea:focus {
-      border-color: #635bff;
-      box-shadow: 0 0 0 3px rgba(99,91,255,0.12), 0 1px 1px rgba(0,0,0,0.03);
+      border-color: #555;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.05);
+    }
+
+    .admin-field input::placeholder,
+    .admin-field textarea::placeholder {
+      color: #555;
     }
 
     .admin-field textarea {
-      min-height: 80px;
+      min-height: 90px;
       resize: vertical;
     }
 
     .admin-field-row {
       display: flex;
-      gap: 0.8rem;
+      gap: 1rem;
     }
 
     .admin-field-row .admin-field { flex: 1; }
@@ -2112,8 +2121,8 @@
     .admin-specs-list {
       display: flex;
       flex-direction: column;
-      gap: 0.4rem;
-      margin-bottom: 0.5rem;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
     }
 
     .admin-spec-row {
@@ -2124,29 +2133,28 @@
 
     .admin-spec-row input {
       flex: 1;
-      padding: 0.45rem 0.65rem;
-      border: 1px solid #e3e8ee;
-      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #333;
+      border-radius: 8px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.8rem;
-      color: #0a2540;
-      background: #fff;
+      font-size: 0.82rem;
+      color: #fff;
+      background: #252525;
       outline: none;
-      box-shadow: 0 1px 1px rgba(0,0,0,0.03);
     }
 
     .admin-spec-row input:focus {
-      border-color: #635bff;
-      box-shadow: 0 0 0 3px rgba(99,91,255,0.12);
+      border-color: #555;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.05);
     }
 
     .admin-spec-remove {
-      width: 30px;
-      height: 30px;
-      border-radius: 6px;
-      border: 1px solid rgba(223,27,65,0.2);
-      background: transparent;
-      color: #df1b41;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid rgba(239,68,68,0.3);
+      background: rgba(239,68,68,0.1);
+      color: #ef4444;
       font-size: 1rem;
       cursor: pointer;
       touch-action: manipulation;
@@ -2154,68 +2162,68 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.1s;
+      transition: background 0.15s;
     }
 
-    .admin-spec-remove:hover { background: #fef0f3; }
+    .admin-spec-remove:hover { background: rgba(239,68,68,0.2); }
 
     .admin-spec-add {
-      padding: 0.35rem 0.9rem;
-      border-radius: 6px;
-      border: 1px dashed #d3d8de;
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      border: 1px dashed #444;
       background: transparent;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       font-weight: 500;
-      color: #697386;
+      color: #8b8b8b;
       cursor: pointer;
       touch-action: manipulation;
       align-self: flex-start;
-      transition: all 0.1s;
+      transition: all 0.15s;
     }
 
-    .admin-spec-add:hover { border-color: #635bff; color: #635bff; }
+    .admin-spec-add:hover { border-color: #666; color: #fff; }
 
     .admin-categories {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem 1rem;
+      gap: 0.6rem 1.25rem;
     }
 
     .admin-category-checkbox {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      font-size: 0.85rem;
-      color: #3c4257;
+      gap: 0.45rem;
+      font-size: 0.88rem;
+      color: #e5e5e5;
       cursor: pointer;
     }
 
     .admin-category-checkbox input[type="checkbox"] {
       width: 16px;
       height: 16px;
-      accent-color: #635bff;
+      accent-color: #fff;
       cursor: pointer;
     }
 
     .admin-stock-options {
       display: flex;
-      gap: 1.5rem;
+      gap: 1.75rem;
     }
 
     .admin-radio-option {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      font-size: 0.85rem;
-      color: #3c4257;
+      gap: 0.45rem;
+      font-size: 0.88rem;
+      color: #e5e5e5;
       cursor: pointer;
     }
 
     .admin-radio-option input[type="radio"] {
       width: 16px;
       height: 16px;
-      accent-color: #635bff;
+      accent-color: #fff;
       cursor: pointer;
     }
 
@@ -2225,76 +2233,79 @@
     }
 
     .calc-input-section {
-      background: #fff;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 1.75rem;
+      border: 1px solid #2a2a2a;
       margin-bottom: 1.5rem;
     }
 
     .calc-title {
       font-size: 0.95rem;
       font-weight: 600;
-      color: #0a2540;
-      margin-bottom: 1rem;
+      color: #fff;
+      margin-bottom: 1.25rem;
     }
 
     .calc-input-row {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
     }
 
     .calc-dollar {
       font-size: 1.5rem;
       font-weight: 600;
-      color: #697386;
+      color: #666;
     }
 
     .calc-input-row input {
       flex: 1;
       max-width: 200px;
-      padding: 0.75rem 1rem;
+      padding: 0.8rem 1rem;
       font-size: 1.25rem;
       font-weight: 600;
-      border: 1px solid #d3d8de;
-      border-radius: 8px;
+      border: 1px solid #333;
+      border-radius: 10px;
       outline: none;
+      background: #252525;
+      color: #fff;
     }
 
     .calc-input-row input:focus {
-      border-color: #635bff;
-      box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.1);
+      border-color: #555;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.05);
     }
 
     .calc-btn {
-      padding: 0.75rem 1.5rem;
-      background: #635bff;
-      color: #fff;
+      padding: 0.8rem 1.6rem;
+      background: #fff;
+      color: #0d0d0d;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: all 0.15s;
     }
 
     .calc-btn:hover {
-      background: #5851e6;
+      background: #e5e5e5;
     }
 
     .calc-hint {
-      font-size: 0.78rem;
-      color: #697386;
-      margin-top: 0.6rem;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.75rem;
     }
 
     .calc-error {
-      background: #fef0f3;
-      color: #df1b41;
-      padding: 0.75rem 1rem;
-      border-radius: 6px;
-      font-size: 0.85rem;
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
+      padding: 0.85rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      border: 1px solid rgba(239,68,68,0.3);
     }
 
     .calc-results-grid {
@@ -2304,14 +2315,15 @@
     }
 
     .calc-result-card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 1.25rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid #2a2a2a;
     }
 
     .calc-result-card.buy-now {
-      background: linear-gradient(135deg, #635bff 0%, #8b5cf6 100%);
+      background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+      border-color: #444;
     }
 
     .calc-result-card.buy-now .calc-result-label,
@@ -2321,37 +2333,37 @@
     }
 
     .calc-result-card.buy-now .calc-details summary {
-      color: rgba(255,255,255,0.8);
+      color: #8b8b8b;
     }
 
     .calc-result-card.buy-now .calc-details-content {
-      background: rgba(255,255,255,0.15);
-      color: #fff;
+      background: #252525;
+      color: #e5e5e5;
     }
 
     .calc-result-card.buy-now .calc-breakdown-row {
-      color: rgba(255,255,255,0.9);
+      color: #e5e5e5;
     }
 
     .calc-result-card.buy-now .calc-breakdown-row.total {
       color: #fff;
-      border-top-color: rgba(255,255,255,0.3);
+      border-top-color: #444;
     }
 
     .calc-result-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #697386;
-      margin-bottom: 1rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #8b8b8b;
+      margin-bottom: 1.25rem;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
     }
 
     .calc-essentials {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      margin-bottom: 1rem;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
     }
 
     .calc-essential-item {
@@ -2365,89 +2377,90 @@
     .calc-essential-value {
       font-size: 2rem;
       font-weight: 700;
-      color: #0a2540;
+      color: #fff;
       line-height: 1.1;
     }
 
     .calc-mo {
       font-size: 1rem;
       font-weight: 500;
-      opacity: 0.7;
+      opacity: 0.6;
     }
 
     .calc-essential-label {
       font-size: 0.75rem;
-      color: #697386;
-      margin-top: 0.25rem;
+      color: #666;
+      margin-top: 0.35rem;
     }
 
     .calc-details {
-      border-top: 1px solid #e3e8ee;
-      padding-top: 0.75rem;
+      border-top: 1px solid #333;
+      padding-top: 1rem;
     }
 
     .calc-result-card.buy-now .calc-details {
-      border-top-color: rgba(255,255,255,0.2);
+      border-top-color: #444;
     }
 
     .calc-details summary {
-      font-size: 0.75rem;
-      color: #697386;
+      font-size: 0.78rem;
+      color: #666;
       cursor: pointer;
       user-select: none;
       outline: none;
     }
 
     .calc-details summary:hover {
-      color: #635bff;
+      color: #fff;
     }
 
     .calc-details[open] summary {
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.85rem;
     }
 
     .calc-details-content {
-      background: #f6f8fa;
-      border-radius: 6px;
-      padding: 0.75rem;
+      background: #252525;
+      border-radius: 8px;
+      padding: 0.85rem;
     }
 
     .calc-breakdown-row {
       display: flex;
       justify-content: space-between;
-      font-size: 0.8rem;
-      color: #3c4257;
-      padding: 0.2rem 0;
+      font-size: 0.82rem;
+      color: #8b8b8b;
+      padding: 0.25rem 0;
     }
 
     .calc-breakdown-row.total {
-      border-top: 1px solid #e3e8ee;
-      margin-top: 0.3rem;
-      padding-top: 0.4rem;
+      border-top: 1px solid #333;
+      margin-top: 0.4rem;
+      padding-top: 0.5rem;
       font-weight: 600;
-      color: #0a2540;
+      color: #fff;
     }
 
     /* ---- Admin Orders ---- */
     .admin-refresh-btn {
-      padding: 0.5rem 1rem;
-      background: #fff;
-      border: 1px solid #d3d8de;
-      border-radius: 6px;
-      font-size: 0.82rem;
+      padding: 0.55rem 1.1rem;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: 0.85rem;
       font-weight: 500;
-      color: #3c4257;
+      color: #e5e5e5;
       cursor: pointer;
+      transition: all 0.15s;
     }
 
     .admin-refresh-btn:hover {
-      background: #f6f8fa;
+      background: #333;
     }
 
     .admin-orders-list {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      background: #1a1a1a;
+      border-radius: 12px;
+      border: 1px solid #2a2a2a;
       overflow: hidden;
     }
 
@@ -2455,10 +2468,10 @@
       display: flex;
       align-items: center;
       gap: 1rem;
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid #e3e8ee;
+      padding: 1.1rem 1.35rem;
+      border-bottom: 1px solid #252525;
       cursor: pointer;
-      transition: background 0.1s;
+      transition: background 0.15s;
     }
 
     .admin-order-row:last-child {
@@ -2466,7 +2479,7 @@
     }
 
     .admin-order-row:hover {
-      background: #f6f8fa;
+      background: #222;
     }
 
     .admin-order-main {
@@ -2476,17 +2489,17 @@
 
     .admin-order-number {
       font-weight: 600;
-      font-size: 0.9rem;
-      color: #0a2540;
-      font-family: monospace;
+      font-size: 0.92rem;
+      color: #fff;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
     }
 
     .admin-order-meta {
       display: flex;
       gap: 1rem;
-      font-size: 0.78rem;
-      color: #697386;
-      margin-top: 0.2rem;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.25rem;
     }
 
     .admin-order-info {
@@ -2496,204 +2509,210 @@
     .admin-order-total {
       font-weight: 600;
       font-size: 0.95rem;
-      color: #0a2540;
+      color: #fff;
     }
 
     .admin-order-time {
-      font-size: 0.75rem;
-      color: #697386;
+      font-size: 0.78rem;
+      color: #666;
     }
 
     .admin-order-status {
       font-size: 0.72rem;
       font-weight: 600;
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
       text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .admin-order-status.pending {
-      background: #fef3c7;
-      color: #b45309;
+      background: rgba(245,158,11,0.15);
+      color: #f59e0b;
     }
 
     .admin-order-status.processing {
-      background: #dbeafe;
-      color: #1d4ed8;
+      background: rgba(59,130,246,0.15);
+      color: #3b82f6;
     }
 
     .admin-order-status.completed {
-      background: #d1fae5;
-      color: #047857;
+      background: rgba(34,197,94,0.15);
+      color: #22c55e;
     }
 
     .admin-order-status.cancelled {
-      background: #fee2e2;
-      color: #dc2626;
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
     }
 
     .admin-order-view {
-      padding: 0.4rem 0.8rem;
-      background: #635bff;
-      color: #fff;
+      padding: 0.45rem 0.9rem;
+      background: #fff;
+      color: #0d0d0d;
       border: none;
-      border-radius: 5px;
-      font-size: 0.78rem;
-      font-weight: 500;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
       cursor: pointer;
+      transition: all 0.15s;
     }
 
     .admin-order-view:hover {
-      background: #5851e6;
+      background: #e5e5e5;
     }
 
     .order-detail-box {
-      background: #fff;
-      border-radius: 12px;
+      background: #1a1a1a;
+      border-radius: 16px;
       max-width: 500px;
       width: 95%;
       max-height: 90vh;
       overflow-y: auto;
+      border: 1px solid #2a2a2a;
     }
 
     .order-detail-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #e3e8ee;
+      padding: 1.5rem 1.75rem;
+      border-bottom: 1px solid #2a2a2a;
     }
 
     .order-detail-title {
       font-size: 1.1rem;
-      font-weight: 700;
-      color: #0a2540;
-      font-family: monospace;
+      font-weight: 600;
+      color: #fff;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
     }
 
     .order-detail-time {
-      font-size: 0.8rem;
-      color: #697386;
-      margin-top: 0.2rem;
+      font-size: 0.82rem;
+      color: #666;
+      margin-top: 0.25rem;
     }
 
     .order-detail-close {
-      width: 32px;
-      height: 32px;
-      border: none;
-      background: #f6f8fa;
-      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      border: 1px solid #333;
+      background: #252525;
+      border-radius: 10px;
       font-size: 1.25rem;
-      color: #697386;
+      color: #8b8b8b;
       cursor: pointer;
+      transition: all 0.15s;
     }
 
     .order-detail-close:hover {
-      background: #e3e8ee;
+      background: #333;
+      color: #fff;
     }
 
     .order-detail-status-row {
       display: flex;
       gap: 1rem;
-      padding: 1rem 1.5rem;
-      background: #f6f8fa;
+      padding: 1.1rem 1.75rem;
+      background: #161616;
       align-items: center;
     }
 
     .order-detail-status {
       font-size: 0.75rem;
       font-weight: 600;
-      padding: 0.35rem 0.75rem;
-      border-radius: 5px;
+      padding: 0.4rem 0.85rem;
+      border-radius: 6px;
       text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .order-detail-status.pending {
-      background: #fef3c7;
-      color: #b45309;
+      background: rgba(245,158,11,0.15);
+      color: #f59e0b;
     }
 
     .order-detail-status.processing {
-      background: #dbeafe;
-      color: #1d4ed8;
+      background: rgba(59,130,246,0.15);
+      color: #3b82f6;
     }
 
     .order-detail-status.completed {
-      background: #d1fae5;
-      color: #047857;
+      background: rgba(34,197,94,0.15);
+      color: #22c55e;
     }
 
     .order-detail-status.cancelled {
-      background: #fee2e2;
-      color: #dc2626;
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
     }
 
     .order-detail-delivery {
-      font-size: 0.85rem;
-      color: #3c4257;
+      font-size: 0.88rem;
+      color: #8b8b8b;
     }
 
     .order-detail-section {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid #e3e8ee;
+      padding: 1.25rem 1.75rem;
+      border-bottom: 1px solid #2a2a2a;
     }
 
     .order-detail-section-title {
       font-size: 0.72rem;
-      font-weight: 600;
-      color: #697386;
+      font-weight: 500;
+      color: #666;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.75rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.85rem;
     }
 
     .order-detail-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.5rem 0;
+      padding: 0.6rem 0;
     }
 
     .order-detail-item + .order-detail-item {
-      border-top: 1px solid #f0f0f0;
+      border-top: 1px solid #252525;
     }
 
     .order-detail-item-name {
       font-weight: 500;
-      font-size: 0.9rem;
-      color: #0a2540;
+      font-size: 0.92rem;
+      color: #fff;
     }
 
     .order-detail-item-plan {
-      font-size: 0.8rem;
-      color: #697386;
+      font-size: 0.82rem;
+      color: #666;
     }
 
     .order-detail-item-price {
       font-weight: 600;
-      font-size: 0.85rem;
-      color: #0a2540;
+      font-size: 0.88rem;
+      color: #fff;
     }
 
     .order-detail-customer-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.25rem 1.5rem;
+      gap: 0.35rem 1.75rem;
     }
 
     .order-detail-customer-col {
       display: flex;
       flex-direction: column;
-      gap: 0.15rem;
+      gap: 0.2rem;
     }
 
     .order-detail-customer-label {
       font-size: 0.72rem;
-      font-weight: 600;
-      color: #697386;
+      font-weight: 500;
+      color: #555;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
-      margin-top: 0.5rem;
+      letter-spacing: 0.04em;
+      margin-top: 0.6rem;
     }
 
     .order-detail-customer-label:first-child {
@@ -2701,185 +2720,719 @@
     }
 
     .order-detail-customer-value {
-      font-size: 0.88rem;
-      color: #0a2540;
+      font-size: 0.9rem;
+      color: #e5e5e5;
     }
 
     .order-detail-totals {
-      padding: 1rem 1.5rem;
-      background: #f6f8fa;
+      padding: 1.25rem 1.75rem;
+      background: #161616;
     }
 
     .order-detail-total-row {
       display: flex;
       justify-content: space-between;
-      font-size: 0.88rem;
-      color: #3c4257;
-      padding: 0.25rem 0;
+      font-size: 0.9rem;
+      color: #8b8b8b;
+      padding: 0.3rem 0;
     }
 
     .order-detail-total-row.final {
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 700;
-      color: #0a2540;
-      padding-top: 0.6rem;
-      margin-top: 0.4rem;
-      border-top: 1px solid #e3e8ee;
+      color: #fff;
+      padding-top: 0.75rem;
+      margin-top: 0.5rem;
+      border-top: 1px solid #333;
     }
 
     .order-detail-actions {
       display: flex;
-      gap: 0.75rem;
-      padding: 1.25rem 1.5rem;
+      gap: 0.85rem;
+      padding: 1.5rem 1.75rem;
     }
 
     .order-status-select {
       flex: 1;
-      padding: 0.6rem 0.75rem;
-      border: 1px solid #d3d8de;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      color: #3c4257;
-      background: #fff;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      color: #e5e5e5;
+      background: #252525;
     }
 
     .order-status-save {
-      padding: 0.6rem 1.25rem;
-      background: #635bff;
-      color: #fff;
+      padding: 0.65rem 1.35rem;
+      background: #fff;
+      color: #0d0d0d;
       border: none;
-      border-radius: 6px;
-      font-size: 0.85rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.15s;
     }
 
     .order-status-save:hover {
-      background: #5851e6;
+      background: #e5e5e5;
     }
 
     .admin-form-actions {
       display: flex;
-      gap: 0.6rem;
-      margin-top: 1.3rem;
-      padding-top: 1.3rem;
-      border-top: 1px solid #e3e8ee;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #2a2a2a;
     }
 
     .admin-save-btn {
-      padding: 0.5rem 1.4rem;
-      border-radius: 6px;
+      padding: 0.6rem 1.5rem;
+      border-radius: 8px;
       border: none;
-      background: #635bff;
-      color: #fff;
+      background: #fff;
+      color: #0d0d0d;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       touch-action: manipulation;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-      transition: background 0.15s;
-      letter-spacing: -0.005em;
+      transition: all 0.15s;
+      letter-spacing: 0.01em;
     }
 
-    .admin-save-btn:hover { background: #5851e6; }
-    .admin-save-btn:active { background: #4d45d1; }
+    .admin-save-btn:hover { background: #e5e5e5; }
+    .admin-save-btn:active { background: #d5d5d5; }
 
     .admin-cancel-btn {
-      padding: 0.5rem 1.4rem;
-      border-radius: 6px;
-      border: 1px solid #e3e8ee;
-      background: #fff;
-      color: #3c4257;
+      padding: 0.6rem 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #252525;
+      color: #e5e5e5;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       font-weight: 500;
       cursor: pointer;
       touch-action: manipulation;
-      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+      transition: all 0.15s;
       transition: background 0.1s;
       letter-spacing: -0.005em;
     }
 
-    .admin-cancel-btn:hover { background: #f6f8fa; }
+    .admin-cancel-btn:hover { background: #333; }
 
     /* Delete Confirm Overlay */
 
     .admin-confirm-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(10,37,64,0.45);
+      background: rgba(0,0,0,0.75);
       z-index: 600;
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(4px);
     }
 
     .admin-confirm-box {
-      background: #fff;
-      border-radius: 12px;
-      padding: 1.6rem 2rem;
-      max-width: 380px;
+      background: #1a1a1a;
+      border-radius: 16px;
+      padding: 1.75rem 2rem;
+      max-width: 400px;
       width: 90%;
+      border: 1px solid #2a2a2a;
       box-shadow: 0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.04);
     }
 
     .admin-confirm-title {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: #0a2540;
-      margin-bottom: 0.4rem;
-      letter-spacing: -0.01em;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.01em;
     }
 
     .admin-confirm-msg {
-      font-size: 0.85rem;
-      color: #697386;
-      margin-bottom: 1.3rem;
-      line-height: 1.55;
+      font-size: 0.88rem;
+      color: #8b8b8b;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .admin-confirm-msg strong {
+      color: #e5e5e5;
     }
 
     .admin-confirm-actions {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.6rem;
       justify-content: flex-end;
     }
 
     .admin-confirm-delete {
-      padding: 0.5rem 1.2rem;
-      border-radius: 6px;
+      padding: 0.55rem 1.3rem;
+      border-radius: 8px;
       border: none;
-      background: #df1b41;
+      background: #ef4444;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       touch-action: manipulation;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
       transition: background 0.15s;
     }
 
-    .admin-confirm-delete:hover { background: #c91538; }
+    .admin-confirm-delete:hover { background: #dc2626; }
 
     .admin-confirm-cancel {
-      padding: 0.5rem 1.2rem;
-      border-radius: 6px;
-      border: 1px solid #e3e8ee;
-      background: #fff;
-      color: #3c4257;
+      padding: 0.55rem 1.3rem;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #252525;
+      color: #e5e5e5;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       font-weight: 500;
       cursor: pointer;
       touch-action: manipulation;
+      transition: all 0.15s;
       box-shadow: 0 1px 1px rgba(0,0,0,0.04);
       transition: background 0.1s;
     }
 
-    .admin-confirm-cancel:hover { background: #f6f8fa; }
+    .admin-confirm-cancel:hover { background: #333; }
+
+    /* ---- Order Processing Wizard ---- */
+    .wizard-overlay {
+      position: fixed;
+      inset: 0;
+      background: #0d0d0d;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+    }
+
+    .wizard-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .wizard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      background: #131313;
+      border-bottom: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+
+    .wizard-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .wizard-close {
+      width: 36px;
+      height: 36px;
+      border: 1px solid #333;
+      background: #252525;
+      border-radius: 10px;
+      font-size: 1.3rem;
+      color: #8b8b8b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .wizard-close:hover {
+      background: #333;
+      color: #fff;
+    }
+
+    .wizard-progress {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1.25rem 2rem;
+      background: #131313;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .wizard-step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .wizard-step-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #252525;
+      border: 2px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #666;
+      transition: all 0.25s;
+    }
+
+    .wizard-step-dot.active {
+      background: #fff;
+      border-color: #fff;
+      color: #0d0d0d;
+    }
+
+    .wizard-step-dot.completed {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: #fff;
+    }
+
+    .wizard-step-line {
+      width: 60px;
+      height: 2px;
+      background: #333;
+      transition: background 0.25s;
+    }
+
+    .wizard-step-line.completed {
+      background: #22c55e;
+    }
+
+    .wizard-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .wizard-content {
+      max-width: 700px;
+      width: 100%;
+    }
+
+    .wizard-section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .wizard-section-desc {
+      font-size: 0.95rem;
+      color: #8b8b8b;
+      margin-bottom: 2rem;
+    }
+
+    .wizard-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .wizard-card-title {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .wizard-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .wizard-info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .wizard-info-label {
+      font-size: 0.75rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .wizard-info-value {
+      font-size: 0.95rem;
+      color: #e5e5e5;
+    }
+
+    .wizard-address-option {
+      background: #1a1a1a;
+      border: 2px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .wizard-address-option:hover {
+      border-color: #444;
+    }
+
+    .wizard-address-option.selected {
+      border-color: #fff;
+      background: #222;
+    }
+
+    .wizard-address-option-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .wizard-address-radio {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .wizard-address-option.selected .wizard-address-radio {
+      border-color: #fff;
+    }
+
+    .wizard-address-option.selected .wizard-address-radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .wizard-address-option-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .wizard-address-text {
+      font-size: 0.9rem;
+      color: #8b8b8b;
+      margin-left: 2rem;
+      line-height: 1.5;
+    }
+
+    .wizard-new-address-form {
+      margin-left: 2rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .wizard-new-address-form.visible {
+      display: block;
+    }
+
+    .wizard-form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .wizard-form-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .wizard-form-field label {
+      font-size: 0.78rem;
+      color: #8b8b8b;
+    }
+
+    .wizard-form-field input {
+      padding: 0.65rem 0.85rem;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #fff;
+      outline: none;
+    }
+
+    .wizard-form-field input:focus {
+      border-color: #555;
+    }
+
+    .wizard-upload-area {
+      background: #1a1a1a;
+      border: 2px dashed #333;
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .wizard-upload-area:hover {
+      border-color: #555;
+      background: #1e1e1e;
+    }
+
+    .wizard-upload-area.has-file {
+      border-style: solid;
+      border-color: #22c55e;
+    }
+
+    .wizard-upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .wizard-upload-text {
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .wizard-upload-hint {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .wizard-id-preview {
+      max-width: 300px;
+      max-height: 200px;
+      border-radius: 8px;
+      margin: 1rem auto;
+      display: block;
+    }
+
+    .wizard-checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+    }
+
+    .wizard-checkbox:hover {
+      background: #1e1e1e;
+    }
+
+    .wizard-checkbox input {
+      width: 20px;
+      height: 20px;
+      accent-color: #22c55e;
+      margin-top: 0.1rem;
+      cursor: pointer;
+    }
+
+    .wizard-checkbox-text {
+      font-size: 0.95rem;
+      color: #e5e5e5;
+      line-height: 1.5;
+    }
+
+    .wizard-checkbox-highlight {
+      color: #fff;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+    }
+
+    .wizard-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      background: #131313;
+      border-top: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+
+    .wizard-btn-back {
+      padding: 0.7rem 1.5rem;
+      background: #252525;
+      border: 1px solid #333;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #e5e5e5;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .wizard-btn-back:hover {
+      background: #333;
+    }
+
+    .wizard-btn-continue {
+      padding: 0.7rem 2rem;
+      background: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #0d0d0d;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .wizard-btn-continue:hover {
+      background: #e5e5e5;
+    }
+
+    .wizard-btn-continue:disabled {
+      background: #333;
+      color: #666;
+      cursor: not-allowed;
+    }
+
+    .wizard-confirm-popup {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 550;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .wizard-confirm-box {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 450px;
+      width: 90%;
+    }
+
+    .wizard-confirm-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+
+    .wizard-confirm-text {
+      font-size: 0.95rem;
+      color: #8b8b8b;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .wizard-confirm-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .wizard-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .wizard-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: #222;
+      border-radius: 10px;
+    }
+
+    .wizard-item-info {
+      flex: 1;
+    }
+
+    .wizard-item-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .wizard-item-plan {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .wizard-item-price {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .wizard-totals {
+      background: #161616;
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .wizard-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #8b8b8b;
+      padding: 0.35rem 0;
+    }
+
+    .wizard-total-row.final {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      padding-top: 0.75rem;
+      margin-top: 0.5rem;
+      border-top: 1px solid #333;
+    }
+
+    .wizard-contract-placeholder {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .wizard-contract-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .wizard-contract-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.75rem;
+    }
+
+    .wizard-contract-text {
+      font-size: 1rem;
+      color: #666;
+    }
 
   </style>
 </head>
@@ -4527,7 +5080,7 @@
                     <div class="admin-order-time">${timeAgo}</div>
                   </div>
                   <div class="admin-order-status ${statusClass}">${order.status || 'pending'}</div>
-                  <button class="admin-order-view" data-order-id="${order.id}">View</button>
+                  <button class="admin-order-view" data-order-id="${order.id}">${order.status === 'pending' ? 'Process' : 'View'}</button>
                 </div>
               `;
             }).join('')}
@@ -4537,7 +5090,12 @@
         adminBody.querySelectorAll('.admin-order-view').forEach(btn => {
           btn.addEventListener('click', () => {
             const orderId = Number(btn.dataset.orderId);
-            showOrderDetails(orderId);
+            const order = adminOrders.find(o => o.id === orderId);
+            if (order && order.status === 'pending') {
+              showOrderProcessingWizard(orderId);
+            } else {
+              showOrderDetails(orderId);
+            }
           });
         });
 
@@ -4545,7 +5103,12 @@
           row.addEventListener('click', (e) => {
             if (!e.target.classList.contains('admin-order-view')) {
               const orderId = Number(row.dataset.orderId);
-              showOrderDetails(orderId);
+              const order = adminOrders.find(o => o.id === orderId);
+              if (order && order.status === 'pending') {
+                showOrderProcessingWizard(orderId);
+              } else {
+                showOrderDetails(orderId);
+              }
             }
           });
         });
@@ -4566,6 +5129,523 @@
       if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
       
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+    }
+
+    // =================== ORDER PROCESSING WIZARD ===================
+
+    let wizardOrder = null;
+    let wizardStep = 1;
+    let wizardData = {
+      deliveryAddress: null,
+      useCustomerAddress: true,
+      customAddress: {},
+      idImageUrl: null,
+      idVerified: false,
+      photoMatches: false,
+      idMatches: false
+    };
+
+    function showOrderProcessingWizard(orderId) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      wizardOrder = order;
+      wizardStep = 1;
+      wizardData = {
+        deliveryAddress: null,
+        useCustomerAddress: true,
+        customAddress: {},
+        idImageUrl: null,
+        idVerified: false,
+        photoMatches: false,
+        idMatches: false
+      };
+
+      const overlay = document.createElement('div');
+      overlay.className = 'wizard-overlay';
+      overlay.id = 'orderWizard';
+      overlay.innerHTML = `
+        <div class="wizard-header">
+          <div class="wizard-title">Process Order ${order.order_number || ''}</div>
+          <button class="wizard-close" id="wizardClose">&times;</button>
+        </div>
+        <div class="wizard-progress" id="wizardProgress"></div>
+        <div class="wizard-body">
+          <div class="wizard-content" id="wizardContent"></div>
+        </div>
+        <div class="wizard-footer">
+          <button class="wizard-btn-back" id="wizardBack" style="visibility:hidden">&larr; Back</button>
+          <button class="wizard-btn-continue" id="wizardContinue">Continue</button>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      setTimeout(() => overlay.classList.add('visible'), 10);
+
+      renderWizardProgress();
+      renderWizardStep();
+
+      document.getElementById('wizardClose').addEventListener('click', () => {
+        if (confirm('Are you sure you want to cancel processing this order?')) {
+          closeWizard();
+        }
+      });
+
+      document.getElementById('wizardBack').addEventListener('click', goWizardBack);
+      document.getElementById('wizardContinue').addEventListener('click', goWizardNext);
+    }
+
+    function closeWizard() {
+      const overlay = document.getElementById('orderWizard');
+      if (overlay) {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 300);
+      }
+      wizardOrder = null;
+    }
+
+    function getTotalWizardSteps() {
+      return wizardOrder.delivery_method === 'delivery' ? 4 : 3;
+    }
+
+    function renderWizardProgress() {
+      const totalSteps = getTotalWizardSteps();
+      const isDelivery = wizardOrder.delivery_method === 'delivery';
+      
+      const stepLabels = isDelivery 
+        ? ['Review', 'Address', 'ID Verify', 'Contract']
+        : ['Review', 'ID Verify', 'Contract'];
+
+      let html = '';
+      for (let i = 1; i <= totalSteps; i++) {
+        const isActive = i === wizardStep;
+        const isCompleted = i < wizardStep;
+        
+        html += `<div class="wizard-step-indicator">
+          <div class="wizard-step-dot ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}">${isCompleted ? '✓' : i}</div>
+        </div>`;
+        
+        if (i < totalSteps) {
+          html += `<div class="wizard-step-line ${isCompleted ? 'completed' : ''}"></div>`;
+        }
+      }
+
+      document.getElementById('wizardProgress').innerHTML = html;
+    }
+
+    function renderWizardStep() {
+      const backBtn = document.getElementById('wizardBack');
+      const continueBtn = document.getElementById('wizardContinue');
+      const totalSteps = getTotalWizardSteps();
+      const isDelivery = wizardOrder.delivery_method === 'delivery';
+
+      backBtn.style.visibility = wizardStep === 1 ? 'hidden' : 'visible';
+      continueBtn.textContent = wizardStep === totalSteps ? 'Complete Order' : 'Continue';
+
+      let currentStepType;
+      if (isDelivery) {
+        currentStepType = ['review', 'address', 'id', 'contract'][wizardStep - 1];
+      } else {
+        currentStepType = ['review', 'id', 'contract'][wizardStep - 1];
+      }
+
+      switch (currentStepType) {
+        case 'review': renderWizardReview(); break;
+        case 'address': renderWizardAddress(); break;
+        case 'id': renderWizardIdVerify(); break;
+        case 'contract': renderWizardContract(); break;
+      }
+
+      renderWizardProgress();
+    }
+
+    function goWizardBack() {
+      if (wizardStep > 1) {
+        wizardStep--;
+        renderWizardStep();
+      }
+    }
+
+    function goWizardNext() {
+      const totalSteps = getTotalWizardSteps();
+      const isDelivery = wizardOrder.delivery_method === 'delivery';
+
+      let currentStepType;
+      if (isDelivery) {
+        currentStepType = ['review', 'address', 'id', 'contract'][wizardStep - 1];
+      } else {
+        currentStepType = ['review', 'id', 'contract'][wizardStep - 1];
+      }
+
+      if (currentStepType === 'address') {
+        if (!wizardData.useCustomerAddress && !wizardData.customAddress.street) {
+          alert('Please enter a delivery address or select the customer address.');
+          return;
+        }
+        showAddressConfirmPopup();
+        return;
+      }
+
+      if (currentStepType === 'id') {
+        if (!wizardData.idImageUrl) {
+          alert('Please upload the customer ID image.');
+          return;
+        }
+        if (!wizardData.photoMatches || !wizardData.idMatches) {
+          alert('Please verify both checkboxes before continuing.');
+          return;
+        }
+      }
+
+      if (wizardStep === totalSteps) {
+        completeOrderProcessing();
+        return;
+      }
+
+      wizardStep++;
+      renderWizardStep();
+    }
+
+    function renderWizardReview() {
+      const order = wizardOrder;
+      const c = order.customer_info || {};
+      const addr = c.address || {};
+      const emp = c.employment || {};
+      const refs = c.references || [];
+
+      const itemsHTML = (order.items || []).map(item => `
+        <div class="wizard-item">
+          <div class="wizard-item-info">
+            <div class="wizard-item-name">${item.product_name}</div>
+            <div class="wizard-item-plan">${item.plan_label} × ${item.quantity}</div>
+          </div>
+          <div class="wizard-item-price">${formatPrice(item.total_down)}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('wizardContent').innerHTML = `
+        <div class="wizard-section-title">Review Order Details</div>
+        <div class="wizard-section-desc">Verify all order and customer information before proceeding.</div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Customer Information</div>
+          <div class="wizard-info-grid">
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Name</div>
+              <div class="wizard-info-value">${c.first_name || ''} ${c.last_name || ''}</div>
+            </div>
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Phone</div>
+              <div class="wizard-info-value">${c.phone || 'N/A'}</div>
+            </div>
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Email</div>
+              <div class="wizard-info-value">${c.email || 'N/A'}</div>
+            </div>
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Date of Birth</div>
+              <div class="wizard-info-value">${c.date_of_birth || 'N/A'}</div>
+            </div>
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Address</div>
+              <div class="wizard-info-value">${addr.street || 'N/A'}${addr.unit ? ', ' + addr.unit : ''}<br>${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}</div>
+            </div>
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">State ID</div>
+              <div class="wizard-info-value">${(c.identification?.number || 'N/A')} (${c.identification?.state || ''})</div>
+            </div>
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Employment</div>
+              <div class="wizard-info-value">${formatEmpStatus(emp.status)}${emp.employer ? ' - ' + emp.employer : ''}</div>
+            </div>
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Income</div>
+              <div class="wizard-info-value">${formatIncomeRange(emp.monthly_income)} (${emp.pay_frequency || 'N/A'})</div>
+            </div>
+          </div>
+          ${refs.length > 0 ? `
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #2a2a2a">
+              <div class="wizard-info-label" style="margin-bottom:0.5rem">References</div>
+              ${refs.map(ref => ref.name ? `<div class="wizard-info-value">${ref.name} (${ref.relationship || ''}) - ${ref.phone || ''}</div>` : '').join('')}
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Order Items</div>
+          <div class="wizard-items-list">
+            ${itemsHTML}
+          </div>
+          <div class="wizard-totals">
+            <div class="wizard-total-row">
+              <span>Subtotal</span>
+              <span>${formatPrice(order.subtotal || 0)}</span>
+            </div>
+            <div class="wizard-total-row">
+              <span>Delivery</span>
+              <span>${order.delivery_method === 'delivery' ? formatPrice(50) : 'Pickup'}</span>
+            </div>
+            <div class="wizard-total-row final">
+              <span>Due Today</span>
+              <span>${formatPrice(order.total_due_today || 0)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWizardAddress() {
+      const c = wizardOrder.customer_info || {};
+      const addr = c.address || {};
+      const addrString = `${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}, ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}`;
+
+      document.getElementById('wizardContent').innerHTML = `
+        <div class="wizard-section-title">Confirm Delivery Address</div>
+        <div class="wizard-section-desc">Select the delivery address for this order.</div>
+
+        <div class="wizard-address-option ${wizardData.useCustomerAddress ? 'selected' : ''}" id="optionCustomerAddr">
+          <div class="wizard-address-option-header">
+            <div class="wizard-address-radio"></div>
+            <div class="wizard-address-option-title">Use Customer Application Address</div>
+          </div>
+          <div class="wizard-address-text">${addrString}</div>
+        </div>
+
+        <div class="wizard-address-option ${!wizardData.useCustomerAddress ? 'selected' : ''}" id="optionNewAddr">
+          <div class="wizard-address-option-header">
+            <div class="wizard-address-radio"></div>
+            <div class="wizard-address-option-title">Enter Different Delivery Address</div>
+          </div>
+          <div class="wizard-new-address-form ${!wizardData.useCustomerAddress ? 'visible' : ''}" id="newAddressForm">
+            <div class="wizard-form-row">
+              <div class="wizard-form-field">
+                <label>Street Address</label>
+                <input type="text" id="newStreet" value="${wizardData.customAddress.street || ''}" placeholder="123 Main St">
+              </div>
+            </div>
+            <div class="wizard-form-row">
+              <div class="wizard-form-field">
+                <label>City</label>
+                <input type="text" id="newCity" value="${wizardData.customAddress.city || ''}" placeholder="Tampa">
+              </div>
+              <div class="wizard-form-field" style="max-width:100px">
+                <label>State</label>
+                <input type="text" id="newState" value="${wizardData.customAddress.state || ''}" placeholder="FL" maxlength="2">
+              </div>
+              <div class="wizard-form-field" style="max-width:120px">
+                <label>ZIP</label>
+                <input type="text" id="newZip" value="${wizardData.customAddress.zip || ''}" placeholder="33601">
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('optionCustomerAddr').addEventListener('click', () => {
+        wizardData.useCustomerAddress = true;
+        document.getElementById('optionCustomerAddr').classList.add('selected');
+        document.getElementById('optionNewAddr').classList.remove('selected');
+        document.getElementById('newAddressForm').classList.remove('visible');
+      });
+
+      document.getElementById('optionNewAddr').addEventListener('click', () => {
+        wizardData.useCustomerAddress = false;
+        document.getElementById('optionNewAddr').classList.add('selected');
+        document.getElementById('optionCustomerAddr').classList.remove('selected');
+        document.getElementById('newAddressForm').classList.add('visible');
+      });
+
+      ['newStreet', 'newCity', 'newState', 'newZip'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', (e) => {
+            const key = id.replace('new', '').toLowerCase();
+            wizardData.customAddress[key] = e.target.value;
+          });
+        }
+      });
+    }
+
+    function showAddressConfirmPopup() {
+      const c = wizardOrder.customer_info || {};
+      const addr = wizardData.useCustomerAddress ? (c.address || {}) : wizardData.customAddress;
+      const addrString = `${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}, ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}`;
+
+      wizardData.deliveryAddress = addr;
+
+      const popup = document.createElement('div');
+      popup.className = 'wizard-confirm-popup';
+      popup.id = 'addressConfirmPopup';
+      popup.innerHTML = `
+        <div class="wizard-confirm-box">
+          <div class="wizard-confirm-title">Confirm Delivery Address</div>
+          <div class="wizard-confirm-text">
+            Have you confirmed this delivery address with the customer?<br><br>
+            <strong style="color:#fff">${addrString}</strong>
+          </div>
+          <label class="wizard-checkbox" style="margin-bottom:1.5rem;cursor:pointer">
+            <input type="checkbox" id="addressConfirmCheck">
+            <div class="wizard-checkbox-text">Yes, I have spoken with the customer and confirmed this is the correct delivery address.</div>
+          </label>
+          <div class="wizard-confirm-actions">
+            <button class="wizard-btn-back" id="addressConfirmCancel">Cancel</button>
+            <button class="wizard-btn-continue" id="addressConfirmOk" disabled>Confirm & Continue</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(popup);
+
+      document.getElementById('addressConfirmCheck').addEventListener('change', (e) => {
+        document.getElementById('addressConfirmOk').disabled = !e.target.checked;
+      });
+
+      document.getElementById('addressConfirmCancel').addEventListener('click', () => popup.remove());
+
+      document.getElementById('addressConfirmOk').addEventListener('click', () => {
+        popup.remove();
+        wizardStep++;
+        renderWizardStep();
+      });
+    }
+
+    function renderWizardIdVerify() {
+      const c = wizardOrder.customer_info || {};
+      const idNum = c.identification?.number || 'N/A';
+
+      document.getElementById('wizardContent').innerHTML = `
+        <div class="wizard-section-title">ID Verification</div>
+        <div class="wizard-section-desc">Upload and verify the customer's State ID.</div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Step 1: Request ID Photo</div>
+          <div style="font-size:0.95rem;color:#e5e5e5;line-height:1.6;margin-bottom:1rem">
+            Ask the customer to send a photo of their State ID to:<br>
+            <strong style="color:#fff;font-size:1.1rem">verify.furniturehub@gmail.com</strong>
+          </div>
+        </div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Step 2: Upload ID Image</div>
+          <div class="wizard-upload-area ${wizardData.idImageUrl ? 'has-file' : ''}" id="idUploadArea">
+            ${wizardData.idImageUrl ? `
+              <img src="${wizardData.idImageUrl}" class="wizard-id-preview" alt="ID Preview">
+              <div class="wizard-upload-text" style="color:#22c55e">ID Uploaded Successfully</div>
+              <div class="wizard-upload-hint">Click to replace</div>
+            ` : `
+              <div class="wizard-upload-icon">📄</div>
+              <div class="wizard-upload-text">Click to upload ID image</div>
+              <div class="wizard-upload-hint">JPG, PNG up to 10MB</div>
+            `}
+          </div>
+          <input type="file" id="idFileInput" accept="image/*" style="display:none">
+        </div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Step 3: Verify ID</div>
+          <label class="wizard-checkbox">
+            <input type="checkbox" id="checkPhotoMatch" ${wizardData.photoMatches ? 'checked' : ''}>
+            <div class="wizard-checkbox-text">The photo on the ID matches the customer</div>
+          </label>
+          <label class="wizard-checkbox">
+            <input type="checkbox" id="checkIdMatch" ${wizardData.idMatches ? 'checked' : ''}>
+            <div class="wizard-checkbox-text">
+              The ID number matches the application: <span class="wizard-checkbox-highlight">${idNum}</span>
+            </div>
+          </label>
+        </div>
+      `;
+
+      const uploadArea = document.getElementById('idUploadArea');
+      const fileInput = document.getElementById('idFileInput');
+
+      uploadArea.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        uploadArea.innerHTML = `
+          <div class="wizard-upload-icon">⏳</div>
+          <div class="wizard-upload-text">Uploading...</div>
+        `;
+
+        try {
+          const fileName = `${wizardOrder.id}_${Date.now()}_${file.name}`;
+          const { data, error } = await sbAdmin.storage
+            .from('customer-ids')
+            .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+          if (error) throw error;
+
+          const { data: urlData } = sbAdmin.storage
+            .from('customer-ids')
+            .getPublicUrl(fileName);
+
+          wizardData.idImageUrl = urlData.publicUrl;
+
+          uploadArea.classList.add('has-file');
+          uploadArea.innerHTML = `
+            <img src="${wizardData.idImageUrl}" class="wizard-id-preview" alt="ID Preview">
+            <div class="wizard-upload-text" style="color:#22c55e">ID Uploaded Successfully</div>
+            <div class="wizard-upload-hint">Click to replace</div>
+          `;
+
+        } catch (err) {
+          alert('Upload failed: ' + err.message);
+          uploadArea.innerHTML = `
+            <div class="wizard-upload-icon">📄</div>
+            <div class="wizard-upload-text">Click to upload ID image</div>
+            <div class="wizard-upload-hint">JPG, PNG up to 10MB</div>
+          `;
+        }
+      });
+
+      document.getElementById('checkPhotoMatch').addEventListener('change', (e) => {
+        wizardData.photoMatches = e.target.checked;
+      });
+
+      document.getElementById('checkIdMatch').addEventListener('change', (e) => {
+        wizardData.idMatches = e.target.checked;
+      });
+    }
+
+    function renderWizardContract() {
+      document.getElementById('wizardContent').innerHTML = `
+        <div class="wizard-contract-placeholder">
+          <div class="wizard-contract-icon">📋</div>
+          <div class="wizard-contract-title">Contract</div>
+          <div class="wizard-contract-text">Contract section coming soon</div>
+        </div>
+      `;
+
+      document.getElementById('wizardContinue').textContent = 'Complete Order';
+    }
+
+    async function completeOrderProcessing() {
+      const btn = document.getElementById('wizardContinue');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      try {
+        const updateData = {
+          status: 'processing',
+          customer_id_image_url: wizardData.idImageUrl,
+          id_verified: true,
+          verified_delivery_address: wizardData.deliveryAddress || null
+        };
+
+        const { error } = await sbAdmin.from('orders').update(updateData).eq('id', wizardOrder.id);
+
+        if (error) throw error;
+
+        closeWizard();
+        renderAdminOrders();
+
+      } catch (err) {
+        alert('Error completing order: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Complete Order';
+      }
     }
 
     function showOrderDetails(orderId) {
