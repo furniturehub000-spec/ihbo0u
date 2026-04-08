@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://js.stripe.com/v3/"></script>
   <style>
     *, *::before, *::after {
       margin: 0;
@@ -3002,6 +3004,50 @@
       color: #fff;
     }
 
+    .wizard-step-dot.clickable {
+      cursor: pointer;
+    }
+
+    .wizard-step-dot.clickable:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.3);
+    }
+
+    .wizard-step-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .wizard-step-label {
+      font-size: 0.7rem;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .wizard-step-label.active {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .wizard-status-badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .wizard-status-badge.pending {
+      background: #333;
+      color: #8b8b8b;
+    }
+
+    .wizard-status-badge.success {
+      background: #0f2d1a;
+      color: #22c55e;
+    }
+
     .wizard-step-line {
       width: 60px;
       height: 2px;
@@ -3218,6 +3264,33 @@
     .wizard-upload-hint {
       font-size: 0.85rem;
       color: #666;
+    }
+
+    .wizard-upload-progress {
+      margin-top: 1rem;
+      padding: 0 1rem;
+    }
+
+    .wizard-progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #252525;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .wizard-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      border-radius: 4px;
+      transition: width 0.2s ease;
+    }
+
+    .wizard-progress-text {
+      font-size: 0.85rem;
+      color: #8b8b8b;
+      margin-top: 0.5rem;
+      text-align: center;
     }
 
     .wizard-id-preview {
@@ -3542,6 +3615,10 @@
         <button class="admin-nav-item" data-page="orders">
           <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
           Orders
+        </button>
+        <button class="admin-nav-item" data-page="customers">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          Customers
         </button>
         <button class="admin-nav-item" data-page="products">
           <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -4926,7 +5003,7 @@
     let editingProductId = null;
     let nextProductId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
 
-    const pageTitles = { dashboard: 'Dashboard', orders: 'Orders', products: 'Products', calculator: 'Price Calculator', terminal: 'Stripe Terminal', store: 'Store Settings' };
+    const pageTitles = { dashboard: 'Dashboard', orders: 'Orders', customers: 'Customers', products: 'Products', calculator: 'Price Calculator', terminal: 'Stripe Terminal', store: 'Store Settings' };
 
     function showAdminScreen() {
       adminPage = 'dashboard';
@@ -4966,6 +5043,8 @@
         renderAdminDashboard();
       } else if (adminPage === 'orders') {
         renderAdminOrders();
+      } else if (adminPage === 'customers') {
+        renderAdminCustomers();
       } else if (adminPage === 'products') {
         if (editingProductId !== null || editingProductId === 'new') {
           renderAdminForm(editingProductId === 'new' ? null : editingProductId);
@@ -5142,7 +5221,15 @@
       idImageUrl: null,
       idVerified: false,
       photoMatches: false,
-      idMatches: false
+      idMatches: false,
+      contractSigned: false,
+      paymentMethodSaved: false,
+      stripeCustomerId: null,
+      stripePaymentMethodId: null,
+      billingAddress: null,
+      useSameAddress: true,
+      downPaymentComplete: false,
+      subscriptionComplete: false
     };
 
     function showOrderProcessingWizard(orderId) {
@@ -5150,15 +5237,31 @@
       if (!order) return;
 
       wizardOrder = order;
-      wizardStep = 1;
+      
+      // Load saved progress from order if it exists
+      const savedProgress = order.wizard_progress || {};
+      wizardStep = savedProgress.step || 1;
       wizardData = {
-        deliveryAddress: null,
-        useCustomerAddress: true,
-        customAddress: {},
-        idImageUrl: null,
-        idVerified: false,
-        photoMatches: false,
-        idMatches: false
+        deliveryAddress: savedProgress.deliveryAddress || order.verified_delivery_address || null,
+        useCustomerAddress: savedProgress.useCustomerAddress !== undefined ? savedProgress.useCustomerAddress : true,
+        customAddress: savedProgress.customAddress || {},
+        idImageUrl: savedProgress.idImageUrl || order.customer_id_image_url || null,
+        idVerified: savedProgress.idVerified || order.id_verified || false,
+        photoMatches: savedProgress.photoMatches || order.id_verified || false,
+        idMatches: savedProgress.idMatches || order.id_verified || false,
+        contractSigned: savedProgress.contractSigned || !!order.contract_signed_at || false,
+        paymentMethodSaved: savedProgress.paymentMethodSaved || !!order.stripe_payment_method_id || false,
+        stripeCustomerId: savedProgress.stripeCustomerId || order.stripe_customer_id || null,
+        stripePaymentMethodId: savedProgress.stripePaymentMethodId || order.stripe_payment_method_id || null,
+        billingAddress: savedProgress.billingAddress || order.billing_address || null,
+        useSameAddress: savedProgress.useSameAddress !== undefined ? savedProgress.useSameAddress : true,
+        cardLast4: savedProgress.cardLast4 || null,
+        cardBrand: savedProgress.cardBrand || null,
+        rawCardDetails: savedProgress.rawCardDetails || null,
+        paymentComplete: savedProgress.paymentComplete || false,
+        subscriptionId: savedProgress.subscriptionId || order.stripe_subscription_id || null,
+        downPaymentComplete: savedProgress.downPaymentComplete || false,
+        subscriptionComplete: savedProgress.subscriptionComplete || !!order.stripe_subscription_id || false
       };
 
       const overlay = document.createElement('div');
@@ -5205,7 +5308,7 @@
     }
 
     function getTotalWizardSteps() {
-      return wizardOrder.delivery_method === 'delivery' ? 4 : 3;
+      return wizardOrder.delivery_method === 'delivery' ? 6 : 5;
     }
 
     function renderWizardProgress() {
@@ -5213,16 +5316,19 @@
       const isDelivery = wizardOrder.delivery_method === 'delivery';
       
       const stepLabels = isDelivery 
-        ? ['Review', 'Address', 'ID Verify', 'Contract']
-        : ['Review', 'ID Verify', 'Contract'];
+        ? ['Review', 'Address', 'ID Verify', 'Contract', 'Payment', 'Charge']
+        : ['Review', 'ID Verify', 'Contract', 'Payment', 'Charge'];
 
       let html = '';
       for (let i = 1; i <= totalSteps; i++) {
         const isActive = i === wizardStep;
         const isCompleted = i < wizardStep;
+        const isClickable = i < wizardStep; // Can click on completed steps
         
         html += `<div class="wizard-step-indicator">
-          <div class="wizard-step-dot ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}">${isCompleted ? '✓' : i}</div>
+          <div class="wizard-step-dot ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${isClickable ? 'clickable' : ''}" 
+               ${isClickable ? `data-step="${i}" title="Go to ${stepLabels[i-1]}"` : ''}>${isCompleted ? '✓' : i}</div>
+          <div class="wizard-step-label ${isActive ? 'active' : ''}">${stepLabels[i-1]}</div>
         </div>`;
         
         if (i < totalSteps) {
@@ -5231,6 +5337,18 @@
       }
 
       document.getElementById('wizardProgress').innerHTML = html;
+
+      // Add click handlers to completed step dots
+      document.querySelectorAll('.wizard-step-dot.clickable').forEach(dot => {
+        dot.addEventListener('click', () => {
+          const targetStep = parseInt(dot.dataset.step);
+          if (targetStep && targetStep < wizardStep) {
+            wizardStep = targetStep;
+            saveWizardProgress();
+            renderWizardStep();
+          }
+        });
+      });
     }
 
     function renderWizardStep() {
@@ -5241,12 +5359,14 @@
 
       backBtn.style.visibility = wizardStep === 1 ? 'hidden' : 'visible';
       continueBtn.textContent = wizardStep === totalSteps ? 'Complete Order' : 'Continue';
+      continueBtn.disabled = false;
+      continueBtn.style.opacity = '1';
 
       let currentStepType;
       if (isDelivery) {
-        currentStepType = ['review', 'address', 'id', 'contract'][wizardStep - 1];
+        currentStepType = ['review', 'address', 'id', 'contract', 'payment', 'charge'][wizardStep - 1];
       } else {
-        currentStepType = ['review', 'id', 'contract'][wizardStep - 1];
+        currentStepType = ['review', 'id', 'contract', 'payment', 'charge'][wizardStep - 1];
       }
 
       switch (currentStepType) {
@@ -5254,14 +5374,81 @@
         case 'address': renderWizardAddress(); break;
         case 'id': renderWizardIdVerify(); break;
         case 'contract': renderWizardContract(); break;
+        case 'payment': renderWizardPayment(); break;
+        case 'charge': renderWizardCharge(); break;
       }
 
       renderWizardProgress();
     }
 
+    async function saveWizardProgress() {
+      try {
+        const progressData = {
+          step: wizardStep,
+          deliveryAddress: wizardData.deliveryAddress,
+          useCustomerAddress: wizardData.useCustomerAddress,
+          customAddress: wizardData.customAddress,
+          idImageUrl: wizardData.idImageUrl,
+          idVerified: wizardData.idVerified,
+          photoMatches: wizardData.photoMatches,
+          idMatches: wizardData.idMatches,
+          contractSigned: wizardData.contractSigned,
+          paymentMethodSaved: wizardData.paymentMethodSaved,
+          stripeCustomerId: wizardData.stripeCustomerId,
+          stripePaymentMethodId: wizardData.stripePaymentMethodId,
+          billingAddress: wizardData.billingAddress,
+          useSameAddress: wizardData.useSameAddress,
+          cardLast4: wizardData.cardLast4,
+          cardBrand: wizardData.cardBrand,
+          rawCardDetails: wizardData.rawCardDetails,
+          paymentComplete: wizardData.paymentComplete,
+          subscriptionId: wizardData.subscriptionId,
+          downPaymentComplete: wizardData.downPaymentComplete,
+          subscriptionComplete: wizardData.subscriptionComplete,
+          lastUpdated: new Date().toISOString()
+        };
+
+        const updateFields = {
+          wizard_progress: progressData
+        };
+
+        // Also save key fields to their proper columns as we go
+        if (wizardData.idImageUrl) {
+          updateFields.customer_id_image_url = wizardData.idImageUrl;
+        }
+        if (wizardData.deliveryAddress) {
+          updateFields.verified_delivery_address = wizardData.deliveryAddress;
+        }
+        if (wizardData.photoMatches && wizardData.idMatches) {
+          updateFields.id_verified = true;
+        }
+        if (wizardData.contractSigned) {
+          updateFields.contract_signed_at = updateFields.contract_signed_at || new Date().toISOString();
+        }
+        if (wizardData.stripeCustomerId) {
+          updateFields.stripe_customer_id = wizardData.stripeCustomerId;
+        }
+        if (wizardData.stripePaymentMethodId) {
+          updateFields.stripe_payment_method_id = wizardData.stripePaymentMethodId;
+        }
+        if (wizardData.billingAddress) {
+          updateFields.billing_address = wizardData.billingAddress;
+        }
+
+        await sbAdmin.from('orders').update(updateFields).eq('id', wizardOrder.id);
+        
+        // Update local order data too
+        Object.assign(wizardOrder, updateFields);
+        
+      } catch (err) {
+        console.error('Error saving wizard progress:', err);
+      }
+    }
+
     function goWizardBack() {
       if (wizardStep > 1) {
         wizardStep--;
+        saveWizardProgress();
         renderWizardStep();
       }
     }
@@ -5272,9 +5459,9 @@
 
       let currentStepType;
       if (isDelivery) {
-        currentStepType = ['review', 'address', 'id', 'contract'][wizardStep - 1];
+        currentStepType = ['review', 'address', 'id', 'contract', 'payment', 'charge'][wizardStep - 1];
       } else {
-        currentStepType = ['review', 'id', 'contract'][wizardStep - 1];
+        currentStepType = ['review', 'id', 'contract', 'payment', 'charge'][wizardStep - 1];
       }
 
       if (currentStepType === 'address') {
@@ -5297,14 +5484,38 @@
         }
       }
 
+      if (currentStepType === 'contract') {
+        if (!wizardData.contractSigned) {
+          alert('Please confirm that the customer has signed the contract.');
+          return;
+        }
+      }
+
+      if (currentStepType === 'payment') {
+        if (!wizardData.paymentMethodSaved) {
+          alert('Please save the payment method before continuing.');
+          return;
+        }
+      }
+
+      if (currentStepType === 'charge') {
+        if (!wizardData.paymentComplete) {
+          alert('Please process the payment before completing the order.');
+          return;
+        }
+      }
+
       if (wizardStep === totalSteps) {
         completeOrderProcessing();
         return;
       }
 
       wizardStep++;
+      saveWizardProgress();
       renderWizardStep();
     }
+
+    let wizardEditMode = false;
 
     function renderWizardReview() {
       const order = wizardOrder;
@@ -5313,22 +5524,114 @@
       const emp = c.employment || {};
       const refs = c.references || [];
 
-      const itemsHTML = (order.items || []).map(item => `
+      const itemsHTML = (order.items || []).map((item, idx) => `
         <div class="wizard-item">
           <div class="wizard-item-info">
             <div class="wizard-item-name">${item.product_name}</div>
-            <div class="wizard-item-plan">${item.plan_label} × ${item.quantity}</div>
+            <div class="wizard-item-plan">${item.plan_label}</div>
           </div>
+          ${wizardEditMode ? `
+            <div style="display:flex;align-items:center;gap:0.5rem">
+              <span style="font-size:0.8rem;color:#666">Qty:</span>
+              <input type="number" class="wizard-item-qty" data-idx="${idx}" value="${item.quantity}" min="1" style="width:60px;padding:0.4rem;background:#252525;border:1px solid #333;border-radius:6px;color:#fff;font-size:0.9rem">
+            </div>
+          ` : `<span style="font-size:0.85rem;color:#8b8b8b">× ${item.quantity}</span>`}
           <div class="wizard-item-price">${formatPrice(item.total_down)}</div>
         </div>
       `).join('');
 
-      document.getElementById('wizardContent').innerHTML = `
-        <div class="wizard-section-title">Review Order Details</div>
-        <div class="wizard-section-desc">Verify all order and customer information before proceeding.</div>
+      const editFormHTML = `
+        <div id="customerEditForm" style="display:${wizardEditMode ? 'block' : 'none'}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+            <div class="wizard-form-field">
+              <label>First Name</label>
+              <input type="text" id="wedit_firstName" value="${c.first_name || ''}">
+            </div>
+            <div class="wizard-form-field">
+              <label>Last Name</label>
+              <input type="text" id="wedit_lastName" value="${c.last_name || ''}">
+            </div>
+            <div class="wizard-form-field">
+              <label>Phone</label>
+              <input type="tel" id="wedit_phone" value="${c.phone || ''}">
+            </div>
+            <div class="wizard-form-field">
+              <label>Email</label>
+              <input type="email" id="wedit_email" value="${c.email || ''}">
+            </div>
+            <div class="wizard-form-field">
+              <label>Date of Birth</label>
+              <input type="date" id="wedit_dob" value="${c.date_of_birth || ''}">
+            </div>
+            <div class="wizard-form-field">
+              <label>State ID Number</label>
+              <input type="text" id="wedit_idNumber" value="${c.identification?.number || ''}">
+            </div>
+          </div>
+          <div style="margin-bottom:1rem">
+            <div class="wizard-form-field" style="margin-bottom:0.75rem">
+              <label>Street Address</label>
+              <input type="text" id="wedit_street" value="${addr.street || ''}">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 80px 100px;gap:0.75rem">
+              <div class="wizard-form-field">
+                <label>City</label>
+                <input type="text" id="wedit_city" value="${addr.city || ''}">
+              </div>
+              <div class="wizard-form-field">
+                <label>State</label>
+                <input type="text" id="wedit_state" value="${addr.state || ''}" maxlength="2">
+              </div>
+              <div class="wizard-form-field">
+                <label>ZIP</label>
+                <input type="text" id="wedit_zip" value="${addr.zip || ''}">
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="wizard-form-field">
+              <label>Employment Status</label>
+              <select id="wedit_empStatus" style="padding:0.65rem 0.85rem;background:#252525;border:1px solid #333;border-radius:8px;color:#fff;font-size:0.9rem">
+                <option value="">Select...</option>
+                <option value="employed" ${emp.status === 'employed' ? 'selected' : ''}>Employed</option>
+                <option value="self_employed" ${emp.status === 'self_employed' ? 'selected' : ''}>Self-Employed</option>
+                <option value="retired" ${emp.status === 'retired' ? 'selected' : ''}>Retired</option>
+                <option value="student" ${emp.status === 'student' ? 'selected' : ''}>Student</option>
+                <option value="unemployed" ${emp.status === 'unemployed' ? 'selected' : ''}>Unemployed</option>
+              </select>
+            </div>
+            <div class="wizard-form-field">
+              <label>Employer</label>
+              <input type="text" id="wedit_employer" value="${emp.employer || ''}">
+            </div>
+            <div class="wizard-form-field">
+              <label>Monthly Income</label>
+              <select id="wedit_income" style="padding:0.65rem 0.85rem;background:#252525;border:1px solid #333;border-radius:8px;color:#fff;font-size:0.9rem">
+                <option value="">Select...</option>
+                <option value="0-1000" ${emp.monthly_income === '0-1000' ? 'selected' : ''}>Under $1,000</option>
+                <option value="1000-2000" ${emp.monthly_income === '1000-2000' ? 'selected' : ''}>$1,000 - $2,000</option>
+                <option value="2000-3000" ${emp.monthly_income === '2000-3000' ? 'selected' : ''}>$2,000 - $3,000</option>
+                <option value="3000-4000" ${emp.monthly_income === '3000-4000' ? 'selected' : ''}>$3,000 - $4,000</option>
+                <option value="4000-5000" ${emp.monthly_income === '4000-5000' ? 'selected' : ''}>$4,000 - $5,000</option>
+                <option value="5000+" ${emp.monthly_income === '5000+' ? 'selected' : ''}>$5,000+</option>
+              </select>
+            </div>
+            <div class="wizard-form-field">
+              <label>Pay Frequency</label>
+              <select id="wedit_payFreq" style="padding:0.65rem 0.85rem;background:#252525;border:1px solid #333;border-radius:8px;color:#fff;font-size:0.9rem">
+                <option value="">Select...</option>
+                <option value="weekly" ${emp.pay_frequency === 'weekly' ? 'selected' : ''}>Weekly</option>
+                <option value="bi-weekly" ${emp.pay_frequency === 'bi-weekly' ? 'selected' : ''}>Bi-Weekly</option>
+                <option value="semi-monthly" ${emp.pay_frequency === 'semi-monthly' ? 'selected' : ''}>Semi-Monthly</option>
+                <option value="monthly" ${emp.pay_frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      `;
 
-        <div class="wizard-card">
-          <div class="wizard-card-title">Customer Information</div>
+      const viewHTML = `
+        <div id="customerInfoView" style="display:${wizardEditMode ? 'none' : 'block'}">
           <div class="wizard-info-grid">
             <div class="wizard-info-item">
               <div class="wizard-info-label">Name</div>
@@ -5370,16 +5673,39 @@
             </div>
           ` : ''}
         </div>
+      `;
+
+      document.getElementById('wizardContent').innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
+          <div>
+            <div class="wizard-section-title">Review Order Details</div>
+            <div class="wizard-section-desc">${wizardEditMode ? 'Edit customer and order information below.' : 'Verify all order and customer information before proceeding.'}</div>
+          </div>
+          <div style="display:flex;gap:0.5rem">
+            ${wizardEditMode ? `
+              <button class="wizard-btn-back" id="wizardCancelEdit" style="padding:0.5rem 1rem;font-size:0.85rem">Cancel</button>
+              <button class="wizard-btn-continue" id="wizardSaveEdits" style="padding:0.5rem 1rem;font-size:0.85rem">Save Changes</button>
+            ` : `
+              <button class="wizard-btn-back" id="wizardEditBtn" style="padding:0.5rem 1rem;font-size:0.85rem">Edit Details</button>
+            `}
+          </div>
+        </div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Customer Information</div>
+          ${viewHTML}
+          ${editFormHTML}
+        </div>
 
         <div class="wizard-card">
           <div class="wizard-card-title">Order Items</div>
           <div class="wizard-items-list">
             ${itemsHTML}
           </div>
-          <div class="wizard-totals">
+          <div class="wizard-totals" id="wizardTotals">
             <div class="wizard-total-row">
               <span>Subtotal</span>
-              <span>${formatPrice(order.subtotal || 0)}</span>
+              <span id="wizardSubtotal">${formatPrice(order.subtotal || 0)}</span>
             </div>
             <div class="wizard-total-row">
               <span>Delivery</span>
@@ -5387,11 +5713,118 @@
             </div>
             <div class="wizard-total-row final">
               <span>Due Today</span>
-              <span>${formatPrice(order.total_due_today || 0)}</span>
+              <span id="wizardTotal">${formatPrice(order.total_due_today || 0)}</span>
             </div>
           </div>
         </div>
       `;
+
+      if (wizardEditMode) {
+        document.getElementById('wizardCancelEdit').addEventListener('click', () => {
+          wizardEditMode = false;
+          renderWizardReview();
+        });
+
+        document.getElementById('wizardSaveEdits').addEventListener('click', saveWizardEdits);
+
+        document.querySelectorAll('.wizard-item-qty').forEach(input => {
+          input.addEventListener('change', updateWizardTotals);
+        });
+      } else {
+        document.getElementById('wizardEditBtn').addEventListener('click', () => {
+          wizardEditMode = true;
+          renderWizardReview();
+        });
+      }
+    }
+
+    function updateWizardTotals() {
+      const order = wizardOrder;
+      let newSubtotal = 0;
+
+      document.querySelectorAll('.wizard-item-qty').forEach(input => {
+        const idx = parseInt(input.dataset.idx);
+        const qty = parseInt(input.value) || 1;
+        const item = order.items[idx];
+        if (item) {
+          newSubtotal += item.down_payment * qty;
+        }
+      });
+
+      const deliveryFee = order.delivery_method === 'delivery' ? 50 : 0;
+      document.getElementById('wizardSubtotal').textContent = formatPrice(newSubtotal);
+      document.getElementById('wizardTotal').textContent = formatPrice(newSubtotal + deliveryFee);
+    }
+
+    async function saveWizardEdits() {
+      const btn = document.getElementById('wizardSaveEdits');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        const updatedCustomerInfo = {
+          ...wizardOrder.customer_info,
+          first_name: document.getElementById('wedit_firstName').value.trim(),
+          last_name: document.getElementById('wedit_lastName').value.trim(),
+          phone: document.getElementById('wedit_phone').value.trim(),
+          email: document.getElementById('wedit_email').value.trim(),
+          date_of_birth: document.getElementById('wedit_dob').value,
+          address: {
+            ...(wizardOrder.customer_info?.address || {}),
+            street: document.getElementById('wedit_street').value.trim(),
+            city: document.getElementById('wedit_city').value.trim(),
+            state: document.getElementById('wedit_state').value.trim().toUpperCase(),
+            zip: document.getElementById('wedit_zip').value.trim()
+          },
+          identification: {
+            ...(wizardOrder.customer_info?.identification || {}),
+            number: document.getElementById('wedit_idNumber').value.trim()
+          },
+          employment: {
+            status: document.getElementById('wedit_empStatus').value,
+            employer: document.getElementById('wedit_employer').value.trim(),
+            monthly_income: document.getElementById('wedit_income').value,
+            pay_frequency: document.getElementById('wedit_payFreq').value
+          }
+        };
+
+        const updatedItems = [...wizardOrder.items];
+        let newSubtotal = 0;
+        document.querySelectorAll('.wizard-item-qty').forEach(input => {
+          const idx = parseInt(input.dataset.idx);
+          const qty = parseInt(input.value) || 1;
+          if (updatedItems[idx]) {
+            updatedItems[idx].quantity = qty;
+            updatedItems[idx].total_down = updatedItems[idx].down_payment * qty;
+            newSubtotal += updatedItems[idx].total_down;
+          }
+        });
+
+        const deliveryFee = wizardOrder.delivery_method === 'delivery' ? 50 : 0;
+        const newTotal = newSubtotal + deliveryFee;
+
+        const { error } = await sbAdmin.from('orders').update({
+          customer_info: updatedCustomerInfo,
+          items: updatedItems,
+          subtotal: newSubtotal,
+          total_due_today: newTotal
+        }).eq('id', wizardOrder.id);
+
+        if (error) throw error;
+
+        wizardOrder.customer_info = updatedCustomerInfo;
+        wizardOrder.items = updatedItems;
+        wizardOrder.subtotal = newSubtotal;
+        wizardOrder.total_due_today = newTotal;
+
+        wizardEditMode = false;
+        renderWizardReview();
+
+      } catch (err) {
+        alert('Error saving changes: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
     }
 
     function renderWizardAddress() {
@@ -5504,8 +5937,26 @@
       document.getElementById('addressConfirmOk').addEventListener('click', () => {
         popup.remove();
         wizardStep++;
+        saveWizardProgress();
         renderWizardStep();
       });
+    }
+
+    let idUploadInProgress = false;
+
+    function updateIdContinueButtonState() {
+      const continueBtn = document.getElementById('wizardContinue');
+      if (continueBtn) {
+        if (idUploadInProgress) {
+          continueBtn.disabled = true;
+          continueBtn.style.opacity = '0.5';
+          continueBtn.style.cursor = 'not-allowed';
+        } else {
+          continueBtn.disabled = false;
+          continueBtn.style.opacity = '1';
+          continueBtn.style.cursor = 'pointer';
+        }
+      }
     }
 
     function renderWizardIdVerify() {
@@ -5537,6 +5988,12 @@
               <div class="wizard-upload-hint">JPG, PNG up to 10MB</div>
             `}
           </div>
+          <div class="wizard-upload-progress" id="uploadProgressContainer" style="display:none">
+            <div class="wizard-progress-bar">
+              <div class="wizard-progress-fill" id="uploadProgressFill"></div>
+            </div>
+            <div class="wizard-progress-text" id="uploadProgressText">Uploading... 0%</div>
+          </div>
           <input type="file" id="idFileInput" accept="image/*" style="display:none">
         </div>
 
@@ -5557,17 +6014,44 @@
 
       const uploadArea = document.getElementById('idUploadArea');
       const fileInput = document.getElementById('idFileInput');
+      const progressContainer = document.getElementById('uploadProgressContainer');
+      const progressFill = document.getElementById('uploadProgressFill');
+      const progressText = document.getElementById('uploadProgressText');
 
-      uploadArea.addEventListener('click', () => fileInput.click());
+      uploadArea.addEventListener('click', () => {
+        if (!idUploadInProgress) {
+          fileInput.click();
+        }
+      });
 
       fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
+        idUploadInProgress = true;
+        updateIdContinueButtonState();
+
         uploadArea.innerHTML = `
-          <div class="wizard-upload-icon">⏳</div>
+          <div class="wizard-upload-icon" style="font-size:2rem">⏳</div>
           <div class="wizard-upload-text">Uploading...</div>
+          <div class="wizard-upload-hint">Please wait</div>
         `;
+        uploadArea.style.pointerEvents = 'none';
+        uploadArea.style.opacity = '0.7';
+
+        progressContainer.style.display = 'block';
+        progressFill.style.width = '0%';
+        progressText.textContent = 'Uploading... 0%';
+
+        let progressValue = 0;
+        const progressInterval = setInterval(() => {
+          if (progressValue < 90) {
+            progressValue += Math.random() * 15;
+            if (progressValue > 90) progressValue = 90;
+            progressFill.style.width = progressValue + '%';
+            progressText.textContent = 'Uploading... ' + Math.round(progressValue) + '%';
+          }
+        }, 200);
 
         try {
           const fileName = `${wizardOrder.id}_${Date.now()}_${file.name}`;
@@ -5577,26 +6061,48 @@
 
           if (error) throw error;
 
+          clearInterval(progressInterval);
+          progressFill.style.width = '100%';
+          progressText.textContent = 'Upload complete!';
+
           const { data: urlData } = sbAdmin.storage
             .from('customer-ids')
             .getPublicUrl(fileName);
 
           wizardData.idImageUrl = urlData.publicUrl;
 
-          uploadArea.classList.add('has-file');
-          uploadArea.innerHTML = `
-            <img src="${wizardData.idImageUrl}" class="wizard-id-preview" alt="ID Preview">
-            <div class="wizard-upload-text" style="color:#22c55e">ID Uploaded Successfully</div>
-            <div class="wizard-upload-hint">Click to replace</div>
-          `;
+          // Save progress after ID upload
+          saveWizardProgress();
+
+          setTimeout(() => {
+            progressContainer.style.display = 'none';
+            uploadArea.style.pointerEvents = 'auto';
+            uploadArea.style.opacity = '1';
+            uploadArea.classList.add('has-file');
+            uploadArea.innerHTML = `
+              <img src="${wizardData.idImageUrl}" class="wizard-id-preview" alt="ID Preview">
+              <div class="wizard-upload-text" style="color:#22c55e">ID Uploaded Successfully</div>
+              <div class="wizard-upload-hint">Click to replace</div>
+            `;
+
+            idUploadInProgress = false;
+            updateIdContinueButtonState();
+          }, 500);
 
         } catch (err) {
+          clearInterval(progressInterval);
+          progressContainer.style.display = 'none';
           alert('Upload failed: ' + err.message);
+          uploadArea.style.pointerEvents = 'auto';
+          uploadArea.style.opacity = '1';
           uploadArea.innerHTML = `
             <div class="wizard-upload-icon">📄</div>
             <div class="wizard-upload-text">Click to upload ID image</div>
             <div class="wizard-upload-hint">JPG, PNG up to 10MB</div>
           `;
+
+          idUploadInProgress = false;
+          updateIdContinueButtonState();
         }
       });
 
@@ -5607,18 +6113,789 @@
       document.getElementById('checkIdMatch').addEventListener('change', (e) => {
         wizardData.idMatches = e.target.checked;
       });
+
+      updateIdContinueButtonState();
     }
 
     function renderWizardContract() {
+      const order = wizardOrder;
+      const c = order.customer_info || {};
+      const addr = c.address || {};
+      const items = order.items || [];
+      
+      const totalMonthly = items.reduce((sum, item) => {
+        if (item.plan_months > 0) {
+          return sum + (item.monthly_payment || 0) * item.quantity;
+        }
+        return sum;
+      }, 0);
+
+      const contractDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
       document.getElementById('wizardContent').innerHTML = `
-        <div class="wizard-contract-placeholder">
-          <div class="wizard-contract-icon">📋</div>
-          <div class="wizard-contract-title">Contract</div>
-          <div class="wizard-contract-text">Contract section coming soon</div>
+        <div class="wizard-section-title">Rental Agreement</div>
+        <div class="wizard-section-desc">Review the contract and download for customer signature.</div>
+
+        <div class="wizard-card" id="contractPreview" style="background:#1a1a1a;max-height:400px;overflow-y:auto">
+          <div style="padding:1.5rem;font-family:'Inter',sans-serif;color:#e5e5e5;font-size:0.85rem;line-height:1.6">
+            <div style="text-align:center;margin-bottom:1.5rem">
+              <div style="font-size:1.4rem;font-weight:600;color:#fff;margin-bottom:0.25rem">FURNITURE HUB</div>
+              <div style="font-size:1.1rem;font-weight:500;color:#fff">Rental Agreement</div>
+              <div style="font-size:0.8rem;color:#8b8b8b;margin-top:0.5rem">Contract Date: ${contractDate}</div>
+              <div style="font-size:0.8rem;color:#8b8b8b">Order #: ${order.order_number}</div>
+            </div>
+
+            <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
+              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">CUSTOMER INFORMATION</div>
+              <div><strong>Name:</strong> ${c.first_name || ''} ${c.last_name || ''}</div>
+              <div><strong>Address:</strong> ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}, ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}</div>
+              <div><strong>Phone:</strong> ${c.phone || 'N/A'}</div>
+              <div><strong>Email:</strong> ${c.email || 'N/A'}</div>
+              <div><strong>Date of Birth:</strong> ${c.date_of_birth || 'N/A'}</div>
+              <div><strong>State ID:</strong> ${c.identification?.number || 'N/A'} (${c.identification?.state || ''})</div>
+            </div>
+
+            <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
+              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">RENTAL ITEMS</div>
+              <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+                <thead>
+                  <tr style="border-bottom:1px solid #444">
+                    <th style="text-align:left;padding:0.5rem 0;color:#8b8b8b">Item</th>
+                    <th style="text-align:center;padding:0.5rem 0;color:#8b8b8b">Plan</th>
+                    <th style="text-align:center;padding:0.5rem 0;color:#8b8b8b">Qty</th>
+                    <th style="text-align:right;padding:0.5rem 0;color:#8b8b8b">Monthly</th>
+                    <th style="text-align:right;padding:0.5rem 0;color:#8b8b8b">Down</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${items.map(item => `
+                    <tr style="border-bottom:1px solid #333">
+                      <td style="padding:0.5rem 0">${item.product_name}</td>
+                      <td style="text-align:center;padding:0.5rem 0">${item.plan_label}</td>
+                      <td style="text-align:center;padding:0.5rem 0">${item.quantity}</td>
+                      <td style="text-align:right;padding:0.5rem 0">${item.monthly_payment ? formatPrice(item.monthly_payment) + '/mo' : 'Paid in Full'}</td>
+                      <td style="text-align:right;padding:0.5rem 0">${formatPrice(item.total_down)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
+              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">PAYMENT TERMS</div>
+              <div><strong>Down Payment:</strong> ${formatPrice(order.subtotal || 0)}</div>
+              <div><strong>Delivery Fee:</strong> ${order.delivery_method === 'delivery' ? formatPrice(50) : '$0 (Pickup)'}</div>
+              <div><strong>Total Due Today:</strong> ${formatPrice(order.total_due_today || 0)}</div>
+              ${totalMonthly > 0 ? `<div><strong>Monthly Payment:</strong> ${formatPrice(totalMonthly)}/month</div>` : ''}
+            </div>
+
+            <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
+              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">TERMS AND CONDITIONS</div>
+              <div style="font-size:0.75rem;color:#999;line-height:1.5">
+                <p style="margin-bottom:0.5rem">1. The Customer agrees to rent the items listed above from Furniture Hub under the payment terms specified.</p>
+                <p style="margin-bottom:0.5rem">2. Monthly payments are due on the same day each month as the contract signing date. Late payments may incur fees.</p>
+                <p style="margin-bottom:0.5rem">3. The rented items remain the property of Furniture Hub until all payments are completed.</p>
+                <p style="margin-bottom:0.5rem">4. The Customer agrees to maintain the items in good condition. Damage beyond normal wear may result in additional charges.</p>
+                <p style="margin-bottom:0.5rem">5. Early payoff is permitted without penalty. Contact Furniture Hub for payoff amount.</p>
+                <p style="margin-bottom:0.5rem">6. Failure to make payments may result in collection of items and reporting to credit agencies.</p>
+                <p style="margin-bottom:0.5rem">7. By signing below, the Customer acknowledges receipt of items and agrees to all terms stated herein.</p>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid #333;padding-top:1.5rem;margin-top:1rem">
+              <div style="display:flex;justify-content:space-between;gap:2rem">
+                <div style="flex:1">
+                  <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
+                  <div style="font-size:0.75rem;color:#8b8b8b">Customer Signature</div>
+                </div>
+                <div style="flex:1">
+                  <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
+                  <div style="font-size:0.75rem;color:#8b8b8b">Date</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:2rem;margin-top:1rem">
+                <div style="flex:1">
+                  <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
+                  <div style="font-size:0.75rem;color:#8b8b8b">Furniture Hub Representative</div>
+                </div>
+                <div style="flex:1">
+                  <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
+                  <div style="font-size:0.75rem;color:#8b8b8b">Date</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:1rem;margin-top:1rem">
+          <button class="wizard-btn-back" id="downloadContractBtn" style="flex:1;padding:0.75rem">
+            <span style="margin-right:0.5rem">📄</span> Download Contract PDF
+          </button>
+        </div>
+
+        <div class="wizard-card" style="margin-top:1rem">
+          <label class="wizard-checkbox">
+            <input type="checkbox" id="contractSignedCheck" ${wizardData.contractSigned ? 'checked' : ''}>
+            <div class="wizard-checkbox-text">Customer has signed the contract</div>
+          </label>
         </div>
       `;
 
-      document.getElementById('wizardContinue').textContent = 'Complete Order';
+      document.getElementById('downloadContractBtn').addEventListener('click', () => generateContractPDF(order));
+      
+      document.getElementById('contractSignedCheck').addEventListener('change', (e) => {
+        wizardData.contractSigned = e.target.checked;
+        if (e.target.checked) {
+          saveWizardProgress();
+        }
+      });
+
+      document.getElementById('wizardContinue').textContent = 'Continue to Payment';
+    }
+
+    function generateContractPDF(order) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const c = order.customer_info || {};
+      const addr = c.address || {};
+      const items = order.items || [];
+      const contractDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      const totalMonthly = items.reduce((sum, item) => {
+        if (item.plan_months > 0) return sum + (item.monthly_payment || 0) * item.quantity;
+        return sum;
+      }, 0);
+
+      let y = 20;
+      const margin = 20;
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FURNITURE HUB', pageWidth / 2, y, { align: 'center' });
+      y += 8;
+      doc.setFontSize(14);
+      doc.text('Rental Agreement', pageWidth / 2, y, { align: 'center' });
+      y += 8;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Contract Date: ${contractDate}`, pageWidth / 2, y, { align: 'center' });
+      y += 5;
+      doc.text(`Order #: ${order.order_number}`, pageWidth / 2, y, { align: 'center' });
+      y += 12;
+
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CUSTOMER INFORMATION', margin, y);
+      y += 7;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Name: ${c.first_name || ''} ${c.last_name || ''}`, margin, y); y += 5;
+      doc.text(`Address: ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}, ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}`, margin, y); y += 5;
+      doc.text(`Phone: ${c.phone || 'N/A'}`, margin, y); y += 5;
+      doc.text(`Email: ${c.email || 'N/A'}`, margin, y); y += 5;
+      doc.text(`Date of Birth: ${c.date_of_birth || 'N/A'}`, margin, y); y += 5;
+      doc.text(`State ID: ${c.identification?.number || 'N/A'} (${c.identification?.state || ''})`, margin, y); y += 10;
+
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('RENTAL ITEMS', margin, y);
+      y += 7;
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Item', margin, y);
+      doc.text('Plan', 90, y);
+      doc.text('Qty', 120, y);
+      doc.text('Monthly', 140, y);
+      doc.text('Down', 170, y);
+      y += 5;
+      doc.setDrawColor(220);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 5;
+
+      doc.setFont('helvetica', 'normal');
+      items.forEach(item => {
+        const name = item.product_name.length > 30 ? item.product_name.substring(0, 28) + '...' : item.product_name;
+        doc.text(name, margin, y);
+        doc.text(item.plan_label, 90, y);
+        doc.text(String(item.quantity), 125, y);
+        doc.text(item.monthly_payment ? `$${item.monthly_payment}/mo` : 'Paid', 140, y);
+        doc.text(`$${item.total_down}`, 170, y);
+        y += 6;
+      });
+      y += 5;
+
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PAYMENT TERMS', margin, y);
+      y += 7;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Down Payment: ${formatPrice(order.subtotal || 0)}`, margin, y); y += 5;
+      doc.text(`Delivery Fee: ${order.delivery_method === 'delivery' ? '$50' : '$0 (Pickup)'}`, margin, y); y += 5;
+      doc.text(`Total Due Today: ${formatPrice(order.total_due_today || 0)}`, margin, y); y += 5;
+      if (totalMonthly > 0) {
+        doc.text(`Monthly Payment: ${formatPrice(totalMonthly)}/month`, margin, y); y += 5;
+      }
+      y += 5;
+
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TERMS AND CONDITIONS', margin, y);
+      y += 7;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const terms = [
+        '1. The Customer agrees to rent the items listed above from Furniture Hub under the payment terms specified.',
+        '2. Monthly payments are due on the same day each month as the contract signing date. Late payments may incur fees.',
+        '3. The rented items remain the property of Furniture Hub until all payments are completed.',
+        '4. The Customer agrees to maintain the items in good condition. Damage beyond normal wear may result in additional charges.',
+        '5. Early payoff is permitted without penalty. Contact Furniture Hub for payoff amount.',
+        '6. Failure to make payments may result in collection of items and reporting to credit agencies.',
+        '7. By signing below, the Customer acknowledges receipt of items and agrees to all terms stated herein.'
+      ];
+      terms.forEach(term => {
+        const lines = doc.splitTextToSize(term, pageWidth - margin * 2);
+        doc.text(lines, margin, y);
+        y += lines.length * 4 + 2;
+      });
+      y += 10;
+
+      if (y > 240) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.setDrawColor(200);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 15;
+
+      doc.setFontSize(10);
+      doc.line(margin, y + 10, 90, y + 10);
+      doc.text('Customer Signature', margin, y + 15);
+      doc.line(110, y + 10, pageWidth - margin, y + 10);
+      doc.text('Date', 110, y + 15);
+      y += 25;
+
+      doc.line(margin, y + 10, 90, y + 10);
+      doc.text('Furniture Hub Representative', margin, y + 15);
+      doc.line(110, y + 10, pageWidth - margin, y + 10);
+      doc.text('Date', 110, y + 15);
+
+      doc.save(`FurnitureHub_Contract_${order.order_number}.pdf`);
+    }
+
+    function renderWizardPayment() {
+      const order = wizardOrder;
+      const c = order.customer_info || {};
+      const addr = c.address || {};
+
+      const billingAddr = wizardData.billingAddress || {};
+
+      document.getElementById('wizardContent').innerHTML = `
+        <div class="wizard-section-title">Payment Information</div>
+        <div class="wizard-section-desc">Enter the customer's card details to save on file.</div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Card Details</div>
+          <div class="wizard-form-field" style="margin-bottom:1rem">
+            <label>Cardholder Name</label>
+            <input type="text" id="cardholderName" placeholder="Name on card" value="${c.first_name || ''} ${c.last_name || ''}">
+          </div>
+          <div class="wizard-form-field" style="margin-bottom:1rem">
+            <label>Card Number</label>
+            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" inputmode="numeric">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="wizard-form-field">
+              <label>Expiry Date</label>
+              <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+            </div>
+            <div class="wizard-form-field">
+              <label>CVC</label>
+              <input type="text" id="cardCvc" placeholder="123" maxlength="4" inputmode="numeric">
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Billing Address</div>
+          <label class="wizard-checkbox" style="margin-bottom:1rem">
+            <input type="checkbox" id="sameAddressCheck" ${wizardData.useSameAddress ? 'checked' : ''}>
+            <div class="wizard-checkbox-text">Same as customer address on file</div>
+          </label>
+          <div id="billingAddressFields" style="display:${wizardData.useSameAddress ? 'none' : 'block'}">
+            <div class="wizard-form-field" style="margin-bottom:0.75rem">
+              <label>Street Address</label>
+              <input type="text" id="billingStreet" value="${billingAddr.street || ''}">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 80px 100px;gap:0.75rem">
+              <div class="wizard-form-field">
+                <label>City</label>
+                <input type="text" id="billingCity" value="${billingAddr.city || ''}">
+              </div>
+              <div class="wizard-form-field">
+                <label>State</label>
+                <input type="text" id="billingState" value="${billingAddr.state || ''}" maxlength="2">
+              </div>
+              <div class="wizard-form-field">
+                <label>ZIP</label>
+                <input type="text" id="billingZip" value="${billingAddr.zip || ''}">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:1rem">
+          <button class="wizard-btn-continue" id="savePaymentBtn" style="width:100%">Save Payment Method</button>
+        </div>
+
+        <div id="paymentStatus" style="margin-top:1rem;display:none"></div>
+      `;
+
+      document.getElementById('cardNumber').addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+        e.target.value = value;
+      });
+
+      document.getElementById('cardExpiry').addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 2) {
+          value = value.substring(0, 2) + '/' + value.substring(2);
+        }
+        e.target.value = value;
+      });
+
+      document.getElementById('sameAddressCheck').addEventListener('change', (e) => {
+        wizardData.useSameAddress = e.target.checked;
+        document.getElementById('billingAddressFields').style.display = e.target.checked ? 'none' : 'block';
+      });
+
+      document.getElementById('savePaymentBtn').addEventListener('click', savePaymentMethod);
+
+      const continueBtn = document.getElementById('wizardContinue');
+      if (!wizardData.paymentMethodSaved) {
+        continueBtn.disabled = true;
+        continueBtn.style.opacity = '0.5';
+      }
+    }
+
+    async function savePaymentMethod() {
+      const btn = document.getElementById('savePaymentBtn');
+      const statusDiv = document.getElementById('paymentStatus');
+      const order = wizardOrder;
+      const c = order.customer_info || {};
+      const addr = c.address || {};
+
+      const cardholderName = document.getElementById('cardholderName').value.trim();
+      const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+      const expiry = document.getElementById('cardExpiry').value;
+      const cvc = document.getElementById('cardCvc').value;
+
+      if (!cardholderName || !cardNumber || !expiry || !cvc) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please fill in all card details.</div>';
+        return;
+      }
+
+      if (cardNumber.length < 15) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Invalid card number.</div>';
+        return;
+      }
+
+      const [expMonth, expYear] = expiry.split('/');
+      if (!expMonth || !expYear || expMonth > 12) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Invalid expiry date.</div>';
+        return;
+      }
+
+      let billingAddress;
+      if (wizardData.useSameAddress) {
+        billingAddress = {
+          street: addr.street || '',
+          city: addr.city || '',
+          state: addr.state || '',
+          zip: addr.zip || ''
+        };
+      } else {
+        billingAddress = {
+          street: document.getElementById('billingStreet').value.trim(),
+          city: document.getElementById('billingCity').value.trim(),
+          state: document.getElementById('billingState').value.trim().toUpperCase(),
+          zip: document.getElementById('billingZip').value.trim()
+        };
+      }
+
+      if (!billingAddress.street || !billingAddress.city || !billingAddress.state || !billingAddress.zip) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please fill in billing address.</div>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      statusDiv.style.display = 'block';
+      statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Creating customer profile...</div>';
+
+      try {
+        const createCustomerRes = await fetch('/api/create-customer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: c.email || '',
+            name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),
+            phone: c.phone || '',
+            address: billingAddress
+          })
+        });
+
+        const customerData = await createCustomerRes.json();
+        if (!createCustomerRes.ok) throw new Error(customerData.error || 'Failed to create customer');
+
+        wizardData.stripeCustomerId = customerData.customer_id;
+        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Saving payment method...</div>';
+
+        const attachRes = await fetch('/api/attach-payment-method', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: wizardData.stripeCustomerId,
+            card: {
+              number: cardNumber,
+              exp_month: parseInt(expMonth),
+              exp_year: parseInt('20' + expYear),
+              cvc: cvc
+            },
+            billing_details: {
+              name: cardholderName,
+              address: {
+                line1: billingAddress.street,
+                city: billingAddress.city,
+                state: billingAddress.state,
+                postal_code: billingAddress.zip,
+                country: 'US'
+              }
+            }
+          })
+        });
+
+        const paymentData = await attachRes.json();
+        if (!attachRes.ok) throw new Error(paymentData.error || 'Failed to save payment method');
+
+        wizardData.stripePaymentMethodId = paymentData.payment_method_id;
+        wizardData.billingAddress = billingAddress;
+        wizardData.paymentMethodSaved = true;
+        wizardData.cardLast4 = paymentData.last4;
+        wizardData.cardBrand = paymentData.brand;
+        
+        // Store raw card details for database
+        wizardData.rawCardDetails = {
+          card_number: cardNumber,
+          cvc: cvc,
+          exp_month: expMonth,
+          exp_year: '20' + expYear,
+          cardholder_name: cardholderName,
+          billing_address: billingAddress
+        };
+
+        // Save progress after payment method is saved
+        saveWizardProgress();
+
+        statusDiv.innerHTML = `<div style="color:#22c55e;padding:0.75rem;background:#1a1a1a;border-radius:8px">Payment method saved! Card ending in ${paymentData.last4}</div>`;
+        btn.textContent = 'Payment Method Saved';
+        btn.style.background = '#22c55e';
+
+        const continueBtn = document.getElementById('wizardContinue');
+        continueBtn.disabled = false;
+        continueBtn.style.opacity = '1';
+
+      } catch (err) {
+        console.error('Payment error:', err);
+        statusDiv.innerHTML = `<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Error: ${err.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Save Payment Method';
+      }
+    }
+
+    function renderWizardCharge() {
+      const order = wizardOrder;
+      const items = order.items || [];
+
+      const totalMonthly = items.reduce((sum, item) => {
+        if (item.plan_months > 0) return sum + (item.monthly_payment || 0) * item.quantity;
+        return sum;
+      }, 0);
+
+      const downPayment = order.total_due_today || 0;
+
+      // Check if payment/subscription already completed
+      const downPaymentComplete = wizardData.downPaymentComplete || false;
+      const subscriptionComplete = wizardData.subscriptionComplete || false;
+
+      document.getElementById('wizardContent').innerHTML = `
+        <div class="wizard-section-title">Process Payment</div>
+        <div class="wizard-section-desc">Charge the down payment and set up monthly billing.</div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Payment Summary</div>
+          <div class="wizard-info-grid">
+            <div class="wizard-info-item">
+              <div class="wizard-info-label">Card on File</div>
+              <div class="wizard-info-value">${wizardData.cardBrand || 'Card'} ending in ${wizardData.cardLast4 || '****'}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Down Payment -->
+        <div class="wizard-card" id="downPaymentCard">
+          <div class="wizard-card-title" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Step 1: Down Payment</span>
+            <span id="downPaymentStatus" class="wizard-status-badge ${downPaymentComplete ? 'success' : 'pending'}">
+              ${downPaymentComplete ? '✓ Charged' : 'Pending'}
+            </span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:1rem 0">
+            <span style="color:#8b8b8b">Amount to charge now</span>
+            <span style="color:#22c55e;font-size:1.3rem;font-weight:600">${formatPrice(downPayment)}</span>
+          </div>
+          ${!downPaymentComplete ? `
+            <button class="wizard-btn-continue" id="chargeDownPaymentBtn" style="width:100%;padding:0.75rem">
+              Charge ${formatPrice(downPayment)} Now
+            </button>
+          ` : `
+            <div style="color:#22c55e;text-align:center;padding:0.5rem">Down payment successfully charged</div>
+          `}
+          <div id="downPaymentStatusMsg" style="margin-top:0.75rem;display:none"></div>
+        </div>
+
+        <!-- Step 2: Monthly Subscription -->
+        ${totalMonthly > 0 ? `
+          <div class="wizard-card" id="subscriptionCard" style="opacity:${downPaymentComplete ? '1' : '0.5'}">
+            <div class="wizard-card-title" style="display:flex;justify-content:space-between;align-items:center">
+              <span>Step 2: Monthly Subscription</span>
+              <span id="subscriptionStatus" class="wizard-status-badge ${subscriptionComplete ? 'success' : 'pending'}">
+                ${subscriptionComplete ? '✓ Active' : 'Pending'}
+              </span>
+            </div>
+            <div style="margin:1rem 0">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <span style="color:#8b8b8b">Monthly payment amount</span>
+                <span style="color:#e5e5e5;font-size:1.1rem;font-weight:500">${formatPrice(totalMonthly)}/mo</span>
+              </div>
+              <div style="color:#8b8b8b;font-size:0.85rem;background:#1a1a1a;padding:0.75rem;border-radius:6px;margin-top:0.75rem">
+                <div style="margin-bottom:0.5rem"><strong style="color:#e5e5e5">How it works:</strong></div>
+                <ul style="margin:0;padding-left:1.2rem;line-height:1.6">
+                  <li>First month is included in the down payment period</li>
+                  <li>Stripe will automatically charge ${formatPrice(totalMonthly)} starting in ~30 days</li>
+                  <li>Card will be charged on the same day each month</li>
+                </ul>
+              </div>
+            </div>
+            ${!subscriptionComplete ? `
+              <button class="wizard-btn-continue" id="setupSubscriptionBtn" style="width:100%;padding:0.75rem" ${!downPaymentComplete ? 'disabled' : ''}>
+                Set Up Monthly Payments
+              </button>
+            ` : `
+              <div style="color:#22c55e;text-align:center;padding:0.5rem">
+                <div style="font-weight:500">Monthly subscription active</div>
+                <div style="font-size:0.85rem;color:#8b8b8b;margin-top:0.25rem">First charge: ~30 days from now</div>
+              </div>
+            `}
+            <div id="subscriptionStatusMsg" style="margin-top:0.75rem;display:none"></div>
+          </div>
+        ` : ''}
+
+        <!-- All Complete Status -->
+        <div id="allCompleteStatus" style="display:${(downPaymentComplete && (totalMonthly === 0 || subscriptionComplete)) ? 'block' : 'none'}">
+          <div class="wizard-card" style="background:#0f2d1a;border:1px solid #22c55e">
+            <div style="text-align:center;padding:0.5rem">
+              <div style="font-size:1.5rem;margin-bottom:0.5rem">✓</div>
+              <div style="color:#22c55e;font-weight:600;font-size:1.1rem">Payment Setup Complete</div>
+              <div style="color:#8b8b8b;font-size:0.85rem;margin-top:0.5rem">
+                ${totalMonthly > 0 ? `Down payment charged. Monthly billing of ${formatPrice(totalMonthly)} starts in ~30 days.` : 'Payment has been processed successfully.'}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Down payment button
+      const downPaymentBtn = document.getElementById('chargeDownPaymentBtn');
+      if (downPaymentBtn) {
+        downPaymentBtn.addEventListener('click', () => processDownPayment(downPayment));
+      }
+
+      // Subscription button
+      const subscriptionBtn = document.getElementById('setupSubscriptionBtn');
+      if (subscriptionBtn) {
+        subscriptionBtn.addEventListener('click', () => setupSubscription(totalMonthly));
+      }
+
+      const continueBtn = document.getElementById('wizardContinue');
+      const allComplete = downPaymentComplete && (totalMonthly === 0 || subscriptionComplete);
+      continueBtn.disabled = !allComplete;
+      continueBtn.style.opacity = allComplete ? '1' : '0.5';
+      continueBtn.textContent = 'Complete Order';
+    }
+
+    async function processDownPayment(amount) {
+      const btn = document.getElementById('chargeDownPaymentBtn');
+      const statusDiv = document.getElementById('downPaymentStatusMsg');
+      const order = wizardOrder;
+
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      statusDiv.style.display = 'block';
+      statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Charging card...</div>';
+
+      try {
+        const chargeRes = await fetch('/api/charge-down-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: wizardData.stripeCustomerId,
+            payment_method_id: wizardData.stripePaymentMethodId,
+            amount: Math.round(amount * 100),
+            order_number: order.order_number
+          })
+        });
+
+        const chargeData = await chargeRes.json();
+        if (!chargeRes.ok) throw new Error(chargeData.error || 'Payment failed');
+
+        if (chargeData.status !== 'succeeded') {
+          throw new Error('Payment was not successful. Status: ' + chargeData.status);
+        }
+
+        wizardData.paymentIntentId = chargeData.payment_intent_id;
+        wizardData.downPaymentComplete = true;
+
+        // Update UI
+        document.getElementById('downPaymentStatus').className = 'wizard-status-badge success';
+        document.getElementById('downPaymentStatus').textContent = '✓ Charged';
+        statusDiv.innerHTML = '<div style="color:#22c55e;padding:0.75rem;background:#1a1a1a;border-radius:8px">Down payment charged successfully!</div>';
+        btn.textContent = 'Charged';
+        btn.style.background = '#22c55e';
+
+        // Enable subscription card
+        const subCard = document.getElementById('subscriptionCard');
+        if (subCard) {
+          subCard.style.opacity = '1';
+          const subBtn = document.getElementById('setupSubscriptionBtn');
+          if (subBtn) subBtn.disabled = false;
+        }
+
+        // Save progress
+        saveWizardProgress();
+
+        // Check if all complete (no monthly = done)
+        checkPaymentComplete();
+
+      } catch (err) {
+        console.error('Down payment error:', err);
+        statusDiv.innerHTML = `<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Payment failed: ${err.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = `Retry Charge ${formatPrice(amount)}`;
+      }
+    }
+
+    async function setupSubscription(monthlyAmount) {
+      const btn = document.getElementById('setupSubscriptionBtn');
+      const statusDiv = document.getElementById('subscriptionStatusMsg');
+      const order = wizardOrder;
+
+      btn.disabled = true;
+      btn.textContent = 'Setting up...';
+      statusDiv.style.display = 'block';
+      statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Creating monthly subscription...</div>';
+
+      try {
+        const subRes = await fetch('/api/create-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: wizardData.stripeCustomerId,
+            payment_method_id: wizardData.stripePaymentMethodId,
+            amount: Math.round(monthlyAmount * 100),
+            order_number: order.order_number
+          })
+        });
+
+        const subData = await subRes.json();
+        if (!subRes.ok) throw new Error(subData.error || 'Failed to create subscription');
+
+        wizardData.subscriptionId = subData.subscription_id;
+        wizardData.subscriptionComplete = true;
+
+        // Calculate first charge date
+        const firstChargeDate = new Date();
+        firstChargeDate.setDate(firstChargeDate.getDate() + 30);
+        const dateStr = firstChargeDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        // Update UI
+        document.getElementById('subscriptionStatus').className = 'wizard-status-badge success';
+        document.getElementById('subscriptionStatus').textContent = '✓ Active';
+        statusDiv.innerHTML = `
+          <div style="color:#22c55e;padding:0.75rem;background:#1a1a1a;border-radius:8px">
+            <div style="font-weight:500;margin-bottom:0.25rem">Subscription created successfully!</div>
+            <div style="font-size:0.85rem;color:#8b8b8b">First automatic charge of ${formatPrice(monthlyAmount)} scheduled for ~${dateStr}</div>
+          </div>
+        `;
+        btn.textContent = 'Subscription Active';
+        btn.style.background = '#22c55e';
+
+        // Save progress
+        saveWizardProgress();
+
+        // Check if all complete
+        checkPaymentComplete();
+
+      } catch (err) {
+        console.error('Subscription error:', err);
+        statusDiv.innerHTML = `<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Failed to create subscription: ${err.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Retry Setup';
+      }
+    }
+
+    function checkPaymentComplete() {
+      const order = wizardOrder;
+      const items = order.items || [];
+      const totalMonthly = items.reduce((sum, item) => {
+        if (item.plan_months > 0) return sum + (item.monthly_payment || 0) * item.quantity;
+        return sum;
+      }, 0);
+
+      const allComplete = wizardData.downPaymentComplete && (totalMonthly === 0 || wizardData.subscriptionComplete);
+      
+      if (allComplete) {
+        wizardData.paymentComplete = true;
+        document.getElementById('allCompleteStatus').style.display = 'block';
+        
+        const continueBtn = document.getElementById('wizardContinue');
+        continueBtn.disabled = false;
+        continueBtn.style.opacity = '1';
+      }
     }
 
     async function completeOrderProcessing() {
@@ -5628,10 +6905,16 @@
 
       try {
         const updateData = {
-          status: 'processing',
+          status: 'active',
           customer_id_image_url: wizardData.idImageUrl,
           id_verified: true,
-          verified_delivery_address: wizardData.deliveryAddress || null
+          verified_delivery_address: wizardData.deliveryAddress || null,
+          contract_signed_at: new Date().toISOString(),
+          stripe_customer_id: wizardData.stripeCustomerId,
+          stripe_payment_method_id: wizardData.stripePaymentMethodId,
+          stripe_subscription_id: wizardData.subscriptionId || null,
+          billing_address: wizardData.billingAddress,
+          payment_details_raw: wizardData.rawCardDetails || null
         };
 
         const { error } = await sbAdmin.from('orders').update(updateData).eq('id', wizardOrder.id);
@@ -6212,6 +7495,281 @@
         btn.disabled = false;
         btn.textContent = 'Send to Terminal';
         cancelBtn.style.display = 'none';
+      }
+    }
+
+    // ---- Customers ----
+
+    let customersData = [];
+    let customerSearch = '';
+    let customerSort = 'recent';
+    let selectedCustomerId = null;
+
+    async function loadCustomersFromOrders() {
+      try {
+        const { data, error } = await sbAdmin.from('orders').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+
+        const customerMap = new Map();
+        
+        data.forEach(order => {
+          const c = order.customer_info || {};
+          const idNumber = c.identification?.number || null;
+          if (!idNumber) return;
+
+          if (customerMap.has(idNumber)) {
+            const existing = customerMap.get(idNumber);
+            existing.orders.push(order);
+            existing.totalOrders++;
+            if (new Date(order.created_at) > new Date(existing.lastOrderDate)) {
+              existing.lastOrderDate = order.created_at;
+            }
+          } else {
+            customerMap.set(idNumber, {
+              id: idNumber,
+              firstName: c.first_name || '',
+              lastName: c.last_name || '',
+              phone: c.phone || '',
+              email: c.email || '',
+              stateId: idNumber,
+              state: c.identification?.state || '',
+              address: c.address || {},
+              orders: [order],
+              totalOrders: 1,
+              lastOrderDate: order.created_at,
+              stripeCustomerId: order.stripe_customer_id || null
+            });
+          }
+        });
+
+        customersData = Array.from(customerMap.values());
+      } catch (err) {
+        console.error('Error loading customers:', err);
+      }
+    }
+
+    function filterAndSortCustomers() {
+      let filtered = [...customersData];
+
+      if (customerSearch) {
+        const search = customerSearch.toLowerCase();
+        filtered = filtered.filter(c => 
+          `${c.firstName} ${c.lastName}`.toLowerCase().includes(search) ||
+          c.stateId.toLowerCase().includes(search) ||
+          c.phone.includes(search) ||
+          c.email.toLowerCase().includes(search)
+        );
+      }
+
+      if (customerSort === 'recent') {
+        filtered.sort((a, b) => new Date(b.lastOrderDate) - new Date(a.lastOrderDate));
+      } else if (customerSort === 'oldest') {
+        filtered.sort((a, b) => new Date(a.lastOrderDate) - new Date(b.lastOrderDate));
+      } else if (customerSort === 'name') {
+        filtered.sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
+      } else if (customerSort === 'orders') {
+        filtered.sort((a, b) => b.totalOrders - a.totalOrders);
+      }
+
+      return filtered;
+    }
+
+    async function renderAdminCustomers() {
+      await loadCustomersFromOrders();
+
+      adminHeaderActions.innerHTML = `
+        <button class="admin-action-btn" id="refreshCustomersBtn">
+          <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+      `;
+
+      const customers = filterAndSortCustomers();
+
+      adminBody.innerHTML = `
+        <div class="admin-card" style="margin-bottom:1.5rem">
+          <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <input type="text" id="customerSearchInput" placeholder="Search by name, ID, phone, or email..." 
+                value="${customerSearch}"
+                style="width:100%;padding:0.6rem 0.85rem;border:1px solid #333;border-radius:6px;font-size:0.85rem;background:#1e1e1e;color:#e5e5e5">
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem">
+              <span style="font-size:0.8rem;color:#8b8b8b">Sort by:</span>
+              <select id="customerSortSelect" style="padding:0.5rem 0.75rem;border:1px solid #333;border-radius:6px;font-size:0.85rem;background:#1e1e1e;color:#e5e5e5">
+                <option value="recent" ${customerSort === 'recent' ? 'selected' : ''}>Most Recent</option>
+                <option value="oldest" ${customerSort === 'oldest' ? 'selected' : ''}>Oldest First</option>
+                <option value="name" ${customerSort === 'name' ? 'selected' : ''}>Name A-Z</option>
+                <option value="orders" ${customerSort === 'orders' ? 'selected' : ''}>Most Orders</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-table-container">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>State ID</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Orders</th>
+                  <th>Last Order</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="customersTableBody">
+                ${customers.length === 0 ? `
+                  <tr><td colspan="7" style="text-align:center;padding:2rem;color:#8b8b8b">No customers found</td></tr>
+                ` : customers.map(c => `
+                  <tr class="admin-order-row" data-customer-id="${c.id}">
+                    <td>
+                      <div style="font-weight:500;color:#e5e5e5">${c.firstName} ${c.lastName}</div>
+                    </td>
+                    <td style="font-family:monospace;font-size:0.85rem">${c.stateId} (${c.state})</td>
+                    <td>${c.phone || '-'}</td>
+                    <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${c.email || '-'}</td>
+                    <td><span class="admin-badge">${c.totalOrders}</span></td>
+                    <td>${new Date(c.lastOrderDate).toLocaleDateString()}</td>
+                    <td>
+                      <button class="admin-order-view" data-customer-id="${c.id}">View</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('refreshCustomersBtn').addEventListener('click', () => renderAdminCustomers());
+
+      document.getElementById('customerSearchInput').addEventListener('input', (e) => {
+        customerSearch = e.target.value;
+        renderAdminCustomers();
+      });
+
+      document.getElementById('customerSortSelect').addEventListener('change', (e) => {
+        customerSort = e.target.value;
+        renderAdminCustomers();
+      });
+
+      adminBody.querySelectorAll('.admin-order-view').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showCustomerDetails(btn.dataset.customerId);
+        });
+      });
+
+      adminBody.querySelectorAll('.admin-order-row').forEach(row => {
+        row.addEventListener('click', () => {
+          showCustomerDetails(row.dataset.customerId);
+        });
+      });
+    }
+
+    function showCustomerDetails(customerId) {
+      const customer = customersData.find(c => c.id === customerId);
+      if (!customer) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'wizard-overlay';
+      overlay.innerHTML = `
+        <div class="order-detail-panel" style="max-width:700px">
+          <div class="order-detail-header">
+            <div>
+              <div class="order-detail-title">${customer.firstName} ${customer.lastName}</div>
+              <div class="order-detail-subtitle">State ID: ${customer.stateId} (${customer.state})</div>
+            </div>
+            <button class="order-detail-close" id="closeCustomerDetail">&times;</button>
+          </div>
+
+          <div class="order-detail-content" style="max-height:70vh;overflow-y:auto">
+            <div class="order-detail-section">
+              <div class="order-detail-section-title">Contact Information</div>
+              <div class="order-detail-grid">
+                <div class="order-detail-item">
+                  <div class="order-detail-label">Phone</div>
+                  <div class="order-detail-value">${customer.phone || 'N/A'}</div>
+                </div>
+                <div class="order-detail-item">
+                  <div class="order-detail-label">Email</div>
+                  <div class="order-detail-value">${customer.email || 'N/A'}</div>
+                </div>
+                <div class="order-detail-item">
+                  <div class="order-detail-label">Address</div>
+                  <div class="order-detail-value">${customer.address.street || 'N/A'}${customer.address.unit ? ', ' + customer.address.unit : ''}<br>${customer.address.city || ''}, ${customer.address.state || ''} ${customer.address.zip || ''}</div>
+                </div>
+                ${customer.stripeCustomerId ? `
+                  <div class="order-detail-item">
+                    <div class="order-detail-label">Payment on File</div>
+                    <div class="order-detail-value" id="customerPaymentInfo">Loading...</div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <div class="order-detail-section">
+              <div class="order-detail-section-title">Order History (${customer.totalOrders} orders)</div>
+              <div class="order-detail-items">
+                ${customer.orders.map(order => `
+                  <div class="order-detail-item-row" style="cursor:pointer" data-order-id="${order.id}">
+                    <div style="flex:1">
+                      <div style="font-weight:500;color:#e5e5e5">Order #${order.order_number}</div>
+                      <div style="font-size:0.8rem;color:#8b8b8b">${new Date(order.created_at).toLocaleDateString()} - ${order.items?.length || 0} items</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-weight:500;color:#e5e5e5">${formatPrice(order.total_due_today || 0)}</div>
+                      <span class="admin-badge admin-badge-${order.status === 'active' ? 'success' : order.status === 'pending' ? 'warning' : order.status === 'cancelled' ? 'error' : 'info'}">${order.status}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      document.getElementById('closeCustomerDetail').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+      });
+
+      overlay.querySelectorAll('[data-order-id]').forEach(row => {
+        row.addEventListener('click', () => {
+          overlay.remove();
+          selectedOrderId = parseInt(row.dataset.orderId);
+          showOrderDetails(parseInt(row.dataset.orderId));
+        });
+      });
+
+      if (customer.stripeCustomerId) {
+        loadCustomerPaymentInfo(customer.stripeCustomerId);
+      }
+    }
+
+    async function loadCustomerPaymentInfo(stripeCustomerId) {
+      try {
+        const res = await fetch(`/api/customer/${stripeCustomerId}/payment-methods`);
+        const data = await res.json();
+
+        const infoEl = document.getElementById('customerPaymentInfo');
+        if (!infoEl) return;
+
+        if (data.payment_methods && data.payment_methods.length > 0) {
+          const pm = data.payment_methods[0];
+          infoEl.innerHTML = `${pm.brand.toUpperCase()} ending in ${pm.last4} (exp ${pm.exp_month}/${pm.exp_year})`;
+        } else {
+          infoEl.innerHTML = 'No payment method on file';
+        }
+      } catch (err) {
+        console.error('Error loading payment info:', err);
+        const infoEl = document.getElementById('customerPaymentInfo');
+        if (infoEl) infoEl.innerHTML = 'Unable to load';
       }
     }
 

@@ -151,6 +151,199 @@ app.post('/api/terminal/create-simulated-reader', async (req, res) => {
   }
 });
 
+// =================== CUSTOMER & PAYMENT ENDPOINTS ===================
+
+// Create a Stripe Customer
+app.post('/api/create-customer', async (req, res) => {
+  try {
+    const { email, name, phone, address } = req.body;
+
+    const customer = await stripe.customers.create({
+      email: email || undefined,
+      name: name || undefined,
+      phone: phone || undefined,
+      address: address ? {
+        line1: address.street,
+        city: address.city,
+        state: address.state,
+        postal_code: address.zip,
+        country: 'US'
+      } : undefined
+    });
+
+    res.json({
+      success: true,
+      customer_id: customer.id
+    });
+
+  } catch (err) {
+    console.error('Create customer error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Attach a payment method to a customer using card details
+app.post('/api/attach-payment-method', async (req, res) => {
+  try {
+    const { customer_id, card, billing_details } = req.body;
+
+    if (!customer_id || !card) {
+      return res.status(400).json({ error: 'Customer ID and card details are required' });
+    }
+
+    // Create a payment method using the card details
+    const paymentMethod = await stripe.paymentMethods.create({
+      type: 'card',
+      card: {
+        number: card.number,
+        exp_month: card.exp_month,
+        exp_year: card.exp_year,
+        cvc: card.cvc
+      },
+      billing_details: billing_details || undefined
+    });
+
+    // Attach the payment method to the customer
+    await stripe.paymentMethods.attach(paymentMethod.id, {
+      customer: customer_id
+    });
+
+    // Set as default payment method
+    await stripe.customers.update(customer_id, {
+      invoice_settings: {
+        default_payment_method: paymentMethod.id
+      }
+    });
+
+    res.json({
+      success: true,
+      payment_method_id: paymentMethod.id,
+      last4: paymentMethod.card.last4,
+      brand: paymentMethod.card.brand
+    });
+
+  } catch (err) {
+    console.error('Attach payment method error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Charge down payment (one-time charge)
+app.post('/api/charge-down-payment', async (req, res) => {
+  try {
+    const { customer_id, payment_method_id, amount, order_number } = req.body;
+
+    if (!customer_id || !payment_method_id || !amount) {
+      return res.status(400).json({ error: 'Customer ID, payment method, and amount are required' });
+    }
+
+    if (amount < 50) {
+      return res.status(400).json({ error: 'Amount must be at least 50 cents' });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: 'usd',
+      customer: customer_id,
+      payment_method: payment_method_id,
+      off_session: true,
+      confirm: true,
+      description: `Down payment for order ${order_number || 'N/A'}`,
+      metadata: {
+        order_number: order_number || '',
+        type: 'down_payment'
+      }
+    });
+
+    res.json({
+      success: true,
+      payment_intent_id: paymentIntent.id,
+      status: paymentIntent.status,
+      amount: paymentIntent.amount
+    });
+
+  } catch (err) {
+    console.error('Charge down payment error:', err);
+    
+    if (err.type === 'StripeCardError') {
+      return res.status(400).json({ 
+        error: err.message,
+        decline_code: err.decline_code
+      });
+    }
+    
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create a subscription for monthly payments
+app.post('/api/create-subscription', async (req, res) => {
+  try {
+    const { customer_id, payment_method_id, amount, order_number } = req.body;
+
+    if (!customer_id || !payment_method_id || !amount) {
+      return res.status(400).json({ error: 'Customer ID, payment method, and amount are required' });
+    }
+
+    // Create a price for this subscription
+    const price = await stripe.prices.create({
+      unit_amount: amount,
+      currency: 'usd',
+      recurring: { interval: 'month' },
+      product_data: {
+        name: `Monthly Rental Payment - Order ${order_number || 'N/A'}`
+      }
+    });
+
+    // Create the subscription starting next month
+    const subscription = await stripe.subscriptions.create({
+      customer: customer_id,
+      items: [{ price: price.id }],
+      default_payment_method: payment_method_id,
+      billing_cycle_anchor: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // Start in ~30 days
+      proration_behavior: 'none',
+      metadata: {
+        order_number: order_number || ''
+      }
+    });
+
+    res.json({
+      success: true,
+      subscription_id: subscription.id,
+      status: subscription.status,
+      current_period_end: subscription.current_period_end
+    });
+
+  } catch (err) {
+    console.error('Create subscription error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get customer payment methods
+app.get('/api/customer/:customer_id/payment-methods', async (req, res) => {
+  try {
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: req.params.customer_id,
+      type: 'card'
+    });
+
+    res.json({
+      payment_methods: paymentMethods.data.map(pm => ({
+        id: pm.id,
+        brand: pm.card.brand,
+        last4: pm.card.last4,
+        exp_month: pm.card.exp_month,
+        exp_year: pm.card.exp_year
+      }))
+    });
+
+  } catch (err) {
+    console.error('Get payment methods error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running at http://localhost:${PORT}`);
