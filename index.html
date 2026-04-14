@@ -6402,7 +6402,11 @@
       doc.save(`FurnitureHub_Contract_${order.order_number}.pdf`);
     }
 
-    function renderWizardPayment() {
+    let stripeInstance = null;
+    let stripeElements = null;
+    let cardElement = null;
+
+    async function renderWizardPayment() {
       const order = wizardOrder;
       const c = order.customer_info || {};
       const addr = c.address || {};
@@ -6420,18 +6424,9 @@
             <input type="text" id="cardholderName" placeholder="Name on card" value="${c.first_name || ''} ${c.last_name || ''}">
           </div>
           <div class="wizard-form-field" style="margin-bottom:1rem">
-            <label>Card Number</label>
-            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" inputmode="numeric">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-            <div class="wizard-form-field">
-              <label>Expiry Date</label>
-              <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5">
-            </div>
-            <div class="wizard-form-field">
-              <label>CVC</label>
-              <input type="text" id="cardCvc" placeholder="123" maxlength="4" inputmode="numeric">
-            </div>
+            <label>Card</label>
+            <div id="card-element" style="padding:0.75rem;background:#252525;border:1px solid #333;border-radius:8px"></div>
+            <div id="card-errors" style="color:#ef4444;font-size:0.85rem;margin-top:0.5rem"></div>
           </div>
         </div>
 
@@ -6470,19 +6465,40 @@
         <div id="paymentStatus" style="margin-top:1rem;display:none"></div>
       `;
 
-      document.getElementById('cardNumber').addEventListener('input', (e) => {
-        let value = e.target.value.replace(/\D/g, '');
-        value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
-        e.target.value = value;
-      });
-
-      document.getElementById('cardExpiry').addEventListener('input', (e) => {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value.length >= 2) {
-          value = value.substring(0, 2) + '/' + value.substring(2);
-        }
-        e.target.value = value;
-      });
+      // Initialize Stripe
+      try {
+        const configRes = await fetch('/api/stripe-config');
+        const config = await configRes.json();
+        
+        stripeInstance = Stripe(config.publishableKey);
+        stripeElements = stripeInstance.elements();
+        
+        cardElement = stripeElements.create('card', {
+          style: {
+            base: {
+              color: '#e5e5e5',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '16px',
+              '::placeholder': { color: '#666' }
+            },
+            invalid: { color: '#ef4444' }
+          }
+        });
+        
+        cardElement.mount('#card-element');
+        
+        cardElement.on('change', (event) => {
+          const displayError = document.getElementById('card-errors');
+          if (event.error) {
+            displayError.textContent = event.error.message;
+          } else {
+            displayError.textContent = '';
+          }
+        });
+      } catch (err) {
+        console.error('Failed to initialize Stripe:', err);
+        document.getElementById('card-errors').textContent = 'Failed to load payment form. Please refresh.';
+      }
 
       document.getElementById('sameAddressCheck').addEventListener('change', (e) => {
         wizardData.useSameAddress = e.target.checked;
@@ -6506,26 +6522,16 @@
       const addr = c.address || {};
 
       const cardholderName = document.getElementById('cardholderName').value.trim();
-      const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
-      const expiry = document.getElementById('cardExpiry').value;
-      const cvc = document.getElementById('cardCvc').value;
 
-      if (!cardholderName || !cardNumber || !expiry || !cvc) {
+      if (!cardholderName) {
         statusDiv.style.display = 'block';
-        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please fill in all card details.</div>';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please enter the cardholder name.</div>';
         return;
       }
 
-      if (cardNumber.length < 15) {
+      if (!cardElement) {
         statusDiv.style.display = 'block';
-        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Invalid card number.</div>';
-        return;
-      }
-
-      const [expMonth, expYear] = expiry.split('/');
-      if (!expMonth || !expYear || expMonth > 12) {
-        statusDiv.style.display = 'block';
-        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Invalid expiry date.</div>';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Payment form not loaded. Please refresh the page.</div>';
         return;
       }
 
@@ -6558,6 +6564,7 @@
       statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Creating customer profile...</div>';
 
       try {
+        // Step 1: Create customer
         const createCustomerRes = await fetch('/api/create-customer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -6573,19 +6580,26 @@
         if (!createCustomerRes.ok) throw new Error(customerData.error || 'Failed to create customer');
 
         wizardData.stripeCustomerId = customerData.customer_id;
-        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Saving payment method...</div>';
+        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Setting up secure payment...</div>';
 
-        const attachRes = await fetch('/api/attach-payment-method', {
+        // Step 2: Create SetupIntent
+        const setupRes = await fetch('/api/create-setup-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customer_id: wizardData.stripeCustomerId,
-            card: {
-              number: cardNumber,
-              exp_month: parseInt(expMonth),
-              exp_year: parseInt('20' + expYear),
-              cvc: cvc
-            },
+            customer_id: wizardData.stripeCustomerId
+          })
+        });
+
+        const setupData = await setupRes.json();
+        if (!setupRes.ok) throw new Error(setupData.error || 'Failed to create setup intent');
+
+        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Saving card securely...</div>';
+
+        // Step 3: Confirm SetupIntent with card element
+        const { setupIntent, error } = await stripeInstance.confirmCardSetup(setupData.client_secret, {
+          payment_method: {
+            card: cardElement,
             billing_details: {
               name: cardholderName,
               address: {
@@ -6596,32 +6610,44 @@
                 country: 'US'
               }
             }
+          }
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // Step 4: Confirm with server and set as default
+        const confirmRes = await fetch('/api/confirm-payment-method', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: wizardData.stripeCustomerId,
+            payment_method_id: setupIntent.payment_method
           })
         });
 
-        const paymentData = await attachRes.json();
-        if (!attachRes.ok) throw new Error(paymentData.error || 'Failed to save payment method');
+        const confirmData = await confirmRes.json();
+        if (!confirmRes.ok) throw new Error(confirmData.error || 'Failed to confirm payment method');
 
-        wizardData.stripePaymentMethodId = paymentData.payment_method_id;
+        wizardData.stripePaymentMethodId = confirmData.payment_method_id;
         wizardData.billingAddress = billingAddress;
         wizardData.paymentMethodSaved = true;
-        wizardData.cardLast4 = paymentData.last4;
-        wizardData.cardBrand = paymentData.brand;
-        
-        // Store raw card details for database
+        wizardData.cardLast4 = confirmData.last4;
+        wizardData.cardBrand = confirmData.brand;
+
+        // Store billing info for database (no raw card details with Stripe Elements)
         wizardData.rawCardDetails = {
-          card_number: cardNumber,
-          cvc: cvc,
-          exp_month: expMonth,
-          exp_year: '20' + expYear,
           cardholder_name: cardholderName,
-          billing_address: billingAddress
+          billing_address: billingAddress,
+          card_last4: confirmData.last4,
+          card_brand: confirmData.brand
         };
 
         // Save progress after payment method is saved
         saveWizardProgress();
 
-        statusDiv.innerHTML = `<div style="color:#22c55e;padding:0.75rem;background:#1a1a1a;border-radius:8px">Payment method saved! Card ending in ${paymentData.last4}</div>`;
+        statusDiv.innerHTML = `<div style="color:#22c55e;padding:0.75rem;background:#1a1a1a;border-radius:8px">Payment method saved! ${confirmData.brand.toUpperCase()} ending in ${confirmData.last4}</div>`;
         btn.textContent = 'Payment Method Saved';
         btn.style.background = '#22c55e';
 

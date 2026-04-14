@@ -153,6 +153,13 @@ app.post('/api/terminal/create-simulated-reader', async (req, res) => {
 
 // =================== CUSTOMER & PAYMENT ENDPOINTS ===================
 
+// Get Stripe publishable key
+app.get('/api/stripe-config', (req, res) => {
+  res.json({
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_51TJBXLFSwoz03r8n5jQeZHQ0PLj5e0m2wJHYCflJRxPIzFQ0nLUQMIvVBdTXI5lAMMijyRAB7Gt5s7Nz8TQlBNjW00TRTl6ryT'
+  });
+});
+
 // Create a Stripe Customer
 app.post('/api/create-customer', async (req, res) => {
   try {
@@ -183,35 +190,47 @@ app.post('/api/create-customer', async (req, res) => {
 });
 
 // Attach a payment method to a customer using card details
-app.post('/api/attach-payment-method', async (req, res) => {
+// Create a SetupIntent for securely collecting card details
+app.post('/api/create-setup-intent', async (req, res) => {
   try {
-    const { customer_id, card, billing_details } = req.body;
+    const { customer_id } = req.body;
 
-    if (!customer_id || !card) {
-      return res.status(400).json({ error: 'Customer ID and card details are required' });
+    if (!customer_id) {
+      return res.status(400).json({ error: 'Customer ID is required' });
     }
 
-    // Create a payment method using the card details
-    const paymentMethod = await stripe.paymentMethods.create({
-      type: 'card',
-      card: {
-        number: card.number,
-        exp_month: card.exp_month,
-        exp_year: card.exp_year,
-        cvc: card.cvc
-      },
-      billing_details: billing_details || undefined
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customer_id,
+      payment_method_types: ['card'],
     });
 
-    // Attach the payment method to the customer
-    await stripe.paymentMethods.attach(paymentMethod.id, {
-      customer: customer_id
+    res.json({
+      success: true,
+      client_secret: setupIntent.client_secret
     });
+
+  } catch (err) {
+    console.error('Create setup intent error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Confirm payment method was attached and set as default
+app.post('/api/confirm-payment-method', async (req, res) => {
+  try {
+    const { customer_id, payment_method_id } = req.body;
+
+    if (!customer_id || !payment_method_id) {
+      return res.status(400).json({ error: 'Customer ID and payment method ID are required' });
+    }
+
+    // Get the payment method details
+    const paymentMethod = await stripe.paymentMethods.retrieve(payment_method_id);
 
     // Set as default payment method
     await stripe.customers.update(customer_id, {
       invoice_settings: {
-        default_payment_method: paymentMethod.id
+        default_payment_method: payment_method_id
       }
     });
 
@@ -223,7 +242,7 @@ app.post('/api/attach-payment-method', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Attach payment method error:', err);
+    console.error('Confirm payment method error:', err);
     res.status(500).json({ error: err.message });
   }
 });
