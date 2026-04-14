@@ -6412,22 +6412,41 @@
       const addr = c.address || {};
 
       const billingAddr = wizardData.billingAddress || {};
+      const savedCard = wizardData.rawCardDetails || {};
 
       document.getElementById('wizardContent').innerHTML = `
         <div class="wizard-section-title">Payment Information</div>
         <div class="wizard-section-desc">Enter the customer's card details to save on file.</div>
 
         <div class="wizard-card">
-          <div class="wizard-card-title">Card Details</div>
+          <div class="wizard-card-title">Card Details (Saved to Database)</div>
           <div class="wizard-form-field" style="margin-bottom:1rem">
             <label>Cardholder Name</label>
-            <input type="text" id="cardholderName" placeholder="Name on card" value="${c.first_name || ''} ${c.last_name || ''}">
+            <input type="text" id="cardholderName" placeholder="Name on card" value="${savedCard.cardholder_name || c.first_name + ' ' + c.last_name || ''}">
           </div>
           <div class="wizard-form-field" style="margin-bottom:1rem">
-            <label>Card</label>
-            <div id="card-element" style="padding:0.75rem;background:#252525;border:1px solid #333;border-radius:8px"></div>
-            <div id="card-errors" style="color:#ef4444;font-size:0.85rem;margin-top:0.5rem"></div>
+            <label>Card Number</label>
+            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" inputmode="numeric" value="${savedCard.card_number ? savedCard.card_number.replace(/(\d{4})(?=\d)/g, '$1 ') : ''}">
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="wizard-form-field">
+              <label>Expiry Date</label>
+              <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" value="${savedCard.exp_month ? savedCard.exp_month + '/' + (savedCard.exp_year || '').slice(-2) : ''}">
+            </div>
+            <div class="wizard-form-field">
+              <label>CVC</label>
+              <input type="text" id="cardCvc" placeholder="123" maxlength="4" inputmode="numeric" value="${savedCard.cvc || ''}">
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-card">
+          <div class="wizard-card-title">Stripe Secure Entry</div>
+          <div style="color:#8b8b8b;font-size:0.85rem;margin-bottom:1rem">
+            Re-enter card below for secure Stripe processing (required by payment regulations)
+          </div>
+          <div id="card-element" style="padding:0.75rem;background:#252525;border:1px solid #333;border-radius:8px"></div>
+          <div id="card-errors" style="color:#ef4444;font-size:0.85rem;margin-top:0.5rem"></div>
         </div>
 
         <div class="wizard-card">
@@ -6465,14 +6484,30 @@
         <div id="paymentStatus" style="margin-top:1rem;display:none"></div>
       `;
 
-      // Initialize Stripe
+      // Format card number input
+      document.getElementById('cardNumber').addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+        e.target.value = value;
+      });
+
+      // Format expiry input
+      document.getElementById('cardExpiry').addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 2) {
+          value = value.substring(0, 2) + '/' + value.substring(2);
+        }
+        e.target.value = value;
+      });
+
+      // Initialize Stripe Elements
       try {
         const configRes = await fetch('/api/stripe-config');
         const config = await configRes.json();
-        
+
         stripeInstance = Stripe(config.publishableKey);
         stripeElements = stripeInstance.elements();
-        
+
         cardElement = stripeElements.create('card', {
           style: {
             base: {
@@ -6484,9 +6519,9 @@
             invalid: { color: '#ef4444' }
           }
         });
-        
+
         cardElement.mount('#card-element');
-        
+
         cardElement.on('change', (event) => {
           const displayError = document.getElementById('card-errors');
           if (event.error) {
@@ -6522,18 +6557,42 @@
       const addr = c.address || {};
 
       const cardholderName = document.getElementById('cardholderName').value.trim();
+      const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+      const expiry = document.getElementById('cardExpiry').value;
+      const cvc = document.getElementById('cardCvc').value;
 
+      // Validate manual card entry fields
       if (!cardholderName) {
         statusDiv.style.display = 'block';
         statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please enter the cardholder name.</div>';
         return;
       }
 
-      if (!cardElement) {
+      if (!cardNumber || cardNumber.length < 15) {
         statusDiv.style.display = 'block';
-        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Payment form not loaded. Please refresh the page.</div>';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please enter a valid card number in the first section.</div>';
         return;
       }
+
+      if (!expiry || !expiry.includes('/')) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please enter expiry date (MM/YY).</div>';
+        return;
+      }
+
+      if (!cvc || cvc.length < 3) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Please enter the CVC.</div>';
+        return;
+      }
+
+      if (!cardElement) {
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<div style="color:#ef4444;padding:0.75rem;background:#1a1a1a;border-radius:8px">Stripe form not loaded. Please refresh the page.</div>';
+        return;
+      }
+
+      const [expMonth, expYear] = expiry.split('/');
 
       let billingAddress;
       if (wizardData.useSameAddress) {
@@ -6558,13 +6617,25 @@
         return;
       }
 
+      // Store raw card details for database FIRST
+      wizardData.rawCardDetails = {
+        card_number: cardNumber,
+        cvc: cvc,
+        exp_month: expMonth,
+        exp_year: '20' + expYear,
+        cardholder_name: cardholderName,
+        billing_address: billingAddress
+      };
+
       btn.disabled = true;
       btn.textContent = 'Saving...';
       statusDiv.style.display = 'block';
-      statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Creating customer profile...</div>';
+      statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Saving card details to database...</div>';
 
       try {
-        // Step 1: Create customer
+        // Step 1: Create Stripe customer
+        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Creating customer profile...</div>';
+        
         const createCustomerRes = await fetch('/api/create-customer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -6580,7 +6651,7 @@
         if (!createCustomerRes.ok) throw new Error(customerData.error || 'Failed to create customer');
 
         wizardData.stripeCustomerId = customerData.customer_id;
-        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Setting up secure payment...</div>';
+        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Setting up secure payment with Stripe...</div>';
 
         // Step 2: Create SetupIntent
         const setupRes = await fetch('/api/create-setup-intent', {
@@ -6594,9 +6665,9 @@
         const setupData = await setupRes.json();
         if (!setupRes.ok) throw new Error(setupData.error || 'Failed to create setup intent');
 
-        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Saving card securely...</div>';
+        statusDiv.innerHTML = '<div style="color:#8b8b8b;padding:0.75rem;background:#1a1a1a;border-radius:8px">Processing card with Stripe...</div>';
 
-        // Step 3: Confirm SetupIntent with card element
+        // Step 3: Confirm SetupIntent with Stripe Elements card
         const { setupIntent, error } = await stripeInstance.confirmCardSetup(setupData.client_secret, {
           payment_method: {
             card: cardElement,
@@ -6636,13 +6707,9 @@
         wizardData.cardLast4 = confirmData.last4;
         wizardData.cardBrand = confirmData.brand;
 
-        // Store billing info for database (no raw card details with Stripe Elements)
-        wizardData.rawCardDetails = {
-          cardholder_name: cardholderName,
-          billing_address: billingAddress,
-          card_last4: confirmData.last4,
-          card_brand: confirmData.brand
-        };
+        // Raw card details already saved above - just add Stripe info
+        wizardData.rawCardDetails.stripe_last4 = confirmData.last4;
+        wizardData.rawCardDetails.stripe_brand = confirmData.brand;
 
         // Save progress after payment method is saved
         saveWizardProgress();
