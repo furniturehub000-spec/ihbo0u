@@ -156,7 +156,7 @@ app.post('/api/terminal/create-simulated-reader', async (req, res) => {
 // Get Stripe publishable key
 app.get('/api/stripe-config', (req, res) => {
   res.json({
-    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_51TJBXLFSwoz03r8n5jQeZHQ0PLj5e0m2wJHYCflJRxPIzFQ0nLUQMIvVBdTXI5lAMMijyRAB7Gt5s7Nz8TQlBNjW00TRTl6ryT'
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_live_51TJBXLFSwoz03r8nwds574TV6VTCdfWzpvhyEbgqwFcCZLIuQTgZ7mMG4FWCaElAhvCYQR4BjdHpsQ7pL72PrH2P00vYV1qTkc'
   });
 });
 
