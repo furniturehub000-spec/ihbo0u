@@ -6151,14 +6151,41 @@
             </div>
 
             <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
-              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">1. ITEM DESCRIPTION</div>
-              ${items.map(item => `
-                <div style="margin-bottom:0.5rem;padding:0.5rem;background:#252525;border-radius:4px">
-                  <div><strong>Product:</strong> ${item.product_name}</div>
+              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">1. ITEM DESCRIPTION & PAYMENT PLAN</div>
+              ${items.map(item => {
+                const totalPrice = item.full_price || (item.monthly_payment * item.plan_months * item.quantity) || item.total_down;
+                const remainingAfterDown = Math.max(0, totalPrice - item.total_down);
+                const totalPayments = item.plan_months > 0 ? item.plan_months : 0;
+                const monthlyPayment = totalPayments > 0 ? (remainingAfterDown / totalPayments) : 0;
+                const weeklyPayment = monthlyPayment > 0 ? (monthlyPayment / 4.33) : 0;
+                
+                return `
+                <div style="margin-bottom:0.75rem;padding:0.75rem;background:#252525;border-radius:4px">
+                  <div style="margin-bottom:0.5rem"><strong>Product:</strong> ${item.product_name}</div>
                   <div><strong>Condition at Delivery:</strong> ☐ New ☐ Excellent ☐ Good</div>
                   <div><strong>Serial / Inventory Number:</strong> _______________________</div>
+                  <div style="margin-top:0.75rem;padding-top:0.5rem;border-top:1px solid #333">
+                    <div><strong>Selected Plan:</strong> ${item.plan_label} ${item.plan_months > 0 ? `(${item.plan_months} months)` : ''}</div>
+                    <div><strong>Total Price:</strong> ${formatPrice(totalPrice)}</div>
+                    <div><strong>Down Payment:</strong> ${formatPrice(item.total_down)}</div>
+                    ${item.plan_months > 0 ? `
+                      <div><strong>Remaining Balance:</strong> ${formatPrice(remainingAfterDown)}</div>
+                      <div><strong>Monthly Payment:</strong> ${formatPrice(monthlyPayment)} x ${totalPayments} payments</div>
+                      <div><strong>Weekly Equivalent:</strong> ~${formatPrice(weeklyPayment)}/week</div>
+                      <div><strong>Total Payments:</strong> ${totalPayments}</div>
+                    ` : `
+                      <div><strong>Payment:</strong> Paid in Full</div>
+                    `}
+                  </div>
                 </div>
-              `).join('')}
+              `}).join('')}
+              
+              <div style="margin-top:1rem;padding:0.75rem;background:#1a3d1a;border:1px solid #22c55e;border-radius:4px">
+                <div style="font-weight:600;color:#22c55e;margin-bottom:0.5rem">PAYMENT SUMMARY</div>
+                <div><strong>Total Due Today (Down Payment):</strong> ${formatPrice(order.total_due_today || 0)}</div>
+                ${order.delivery_method === 'delivery' ? `<div><strong>Delivery Fee (included above):</strong> $50</div>` : ''}
+                <div><strong>Total Monthly Payment:</strong> ${formatPrice(items.reduce((sum, item) => sum + (item.monthly_payment || 0) * item.quantity, 0))}/month</div>
+              </div>
             </div>
 
             <div style="font-size:0.7rem;color:#999;line-height:1.4">
@@ -6170,8 +6197,8 @@
               <strong>90 DAY SAME AS CASH:</strong> Customer may purchase the merchandise for the Cash Price if the full balance is paid within ninety (90) days from the start date. During the 90-day period, the customer must continue making required payments. All payments made during this period will be credited toward the Cash Price payoff amount. If the balance is not paid in full within 90 days, the agreement will continue under the selected ownership plan.<br>
               Customer Initials: _______</p>
 
-              <p style="margin-bottom:0.75rem"><strong style="color:#fff">4. PAYMENT TERMS</strong><br>
-              Payments are due weekly/monthly as selected. Accepted payment methods: Cash, Debit Card, Credit Card, Electronic payment. Furniture Hub will maintain a payment ledger documenting all payments, fees, and balances.<br>
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">4. PAYMENT TERMS & AUTOMATIC BILLING</strong><br>
+              Payments are due monthly as selected. Accepted payment methods: Cash, Debit Card, Credit Card, Electronic payment. <strong>By signing this agreement, customer authorizes Furniture Hub to automatically charge the card on file for monthly payments on the same day each month.</strong> Furniture Hub will maintain a payment ledger documenting all payments, fees, and balances.<br>
               Customer Initials: _______</p>
 
               <p style="margin-bottom:0.75rem"><strong style="color:#fff">5. GRACE PERIOD AND LATE FEES</strong><br>
@@ -6373,11 +6400,11 @@
       y += 6;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('1. ITEM DESCRIPTION', margin, y);
+      doc.text('1. ITEM DESCRIPTION & PAYMENT PLAN', margin, y);
       y += 6;
       
       items.forEach((item, idx) => {
-        checkPage(20);
+        checkPage(45);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         const itemLines = doc.splitTextToSize(`Product: ${item.product_name}`, contentWidth);
@@ -6386,8 +6413,47 @@
           y += 4;
         });
         doc.text('Condition at Delivery: [ ] New  [ ] Excellent  [ ] Good', margin, y); y += 4;
-        doc.text('Serial / Inventory Number: _______________________', margin, y); y += 6;
+        doc.text('Serial / Inventory Number: _______________________', margin, y); y += 5;
+        
+        // Payment details for this item
+        const totalPrice = item.full_price || (item.monthly_payment * item.plan_months * item.quantity) || item.total_down;
+        const remainingAfterDown = Math.max(0, totalPrice - item.total_down);
+        const totalPayments = item.plan_months > 0 ? item.plan_months : 0;
+        const monthlyPayment = totalPayments > 0 ? (remainingAfterDown / totalPayments) : 0;
+        const weeklyPayment = monthlyPayment > 0 ? (monthlyPayment / 4.33) : 0;
+        
+        doc.setFont('helvetica', 'bold');
+        doc.text('Payment Details:', margin, y); y += 4;
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Selected Plan: ${item.plan_label}${item.plan_months > 0 ? ` (${item.plan_months} months)` : ''}`, margin, y); y += 4;
+        doc.text(`Total Price: $${totalPrice.toFixed(2)}`, margin, y); y += 4;
+        doc.text(`Down Payment: $${item.total_down.toFixed(2)}`, margin, y); y += 4;
+        
+        if (item.plan_months > 0) {
+          doc.text(`Remaining Balance: $${remainingAfterDown.toFixed(2)}`, margin, y); y += 4;
+          doc.text(`Monthly Payment: $${monthlyPayment.toFixed(2)} x ${totalPayments} payments`, margin, y); y += 4;
+          doc.text(`Weekly Equivalent: ~$${weeklyPayment.toFixed(2)}/week`, margin, y); y += 4;
+          doc.text(`Total Payments: ${totalPayments}`, margin, y); y += 4;
+        } else {
+          doc.text('Payment: Paid in Full', margin, y); y += 4;
+        }
+        y += 4;
       });
+
+      // Payment Summary Box
+      checkPage(25);
+      doc.setDrawColor(34, 197, 94);
+      doc.setFillColor(240, 253, 244);
+      doc.rect(margin, y, contentWidth, 20, 'FD');
+      y += 5;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PAYMENT SUMMARY', margin + 3, y); y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total Due Today (Down Payment): $${(order.total_due_today || 0).toFixed(2)}`, margin + 3, y); y += 4;
+      const totalMonthlyPayment = items.reduce((sum, item) => sum + (item.monthly_payment || 0) * item.quantity, 0);
+      doc.text(`Total Monthly Payment: $${totalMonthlyPayment.toFixed(2)}/month`, margin + 3, y); 
+      y += 12;
 
       // Section 2 - Cash Price
       addSection('2. CASH PRICE', 
@@ -6397,9 +6463,9 @@
       addSection('3. PAYMENT OPTIONS', 
         '90 DAY SAME AS CASH: Customer may purchase the merchandise for the Cash Price if the full balance is paid within ninety (90) days from the start date of this agreement. During the 90-day period, the customer must continue making the required payments according to the ownership plan selected in this agreement. All payments made during the 90-day period will be credited toward the Cash Price payoff amount. If the remaining balance of the Cash Price is paid in full within 90 days, the customer will own the merchandise and no additional markup will apply. If the balance is not paid in full within 90 days, the agreement will continue under the selected ownership plan and the customer will remain responsible for the total cost of that plan. Failure to make scheduled payments during the 90-day period may result in late fees, default of the agreement, and repossession rights as outlined in this contract.');
 
-      // Section 4 - Payment Terms
-      addSection('4. PAYMENT TERMS', 
-        'Payments are due weekly/monthly beginning on the start date. Accepted payment methods: Cash, Debit Card, Credit Card, Electronic payment. Furniture Hub will maintain a payment ledger documenting all payments, fees, and balances.');
+      // Section 4 - Payment Terms with automatic billing
+      addSection('4. PAYMENT TERMS & AUTOMATIC BILLING', 
+        'Payments are due monthly beginning on the start date. Accepted payment methods: Cash, Debit Card, Credit Card, Electronic payment. BY SIGNING THIS AGREEMENT, CUSTOMER AUTHORIZES FURNITURE HUB TO AUTOMATICALLY CHARGE THE CARD ON FILE FOR MONTHLY PAYMENTS ON THE SAME DAY EACH MONTH. Furniture Hub will maintain a payment ledger documenting all payments, fees, and balances.');
 
       // Section 5 - Grace Period
       addSection('5. GRACE PERIOD AND LATE FEES', 
