@@ -6122,101 +6122,137 @@
       const c = order.customer_info || {};
       const addr = c.address || {};
       const items = order.items || [];
+      const deliveryAddr = wizardData.deliveryAddress || addr;
       
-      const totalMonthly = items.reduce((sum, item) => {
-        if (item.plan_months > 0) {
-          return sum + (item.monthly_payment || 0) * item.quantity;
-        }
-        return sum;
-      }, 0);
-
       const contractDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
       document.getElementById('wizardContent').innerHTML = `
-        <div class="wizard-section-title">Rental Agreement</div>
-        <div class="wizard-section-desc">Review the contract and download for customer signature.</div>
+        <div class="wizard-section-title">Rental / Lease-to-Own Agreement</div>
+        <div class="wizard-section-desc">Review the full contract and download for customer signature.</div>
 
         <div class="wizard-card" id="contractPreview" style="background:#1a1a1a;max-height:400px;overflow-y:auto">
-          <div style="padding:1.5rem;font-family:'Inter',sans-serif;color:#e5e5e5;font-size:0.85rem;line-height:1.6">
+          <div style="padding:1.5rem;font-family:'Inter',sans-serif;color:#e5e5e5;font-size:0.8rem;line-height:1.5">
             <div style="text-align:center;margin-bottom:1.5rem">
               <div style="font-size:1.4rem;font-weight:600;color:#fff;margin-bottom:0.25rem">FURNITURE HUB</div>
-              <div style="font-size:1.1rem;font-weight:500;color:#fff">Rental Agreement</div>
-              <div style="font-size:0.8rem;color:#8b8b8b;margin-top:0.5rem">Contract Date: ${contractDate}</div>
-              <div style="font-size:0.8rem;color:#8b8b8b">Order #: ${order.order_number}</div>
+              <div style="font-size:1rem;font-weight:500;color:#fff">RENTAL / LEASE-TO-OWN AGREEMENT</div>
+              <div style="font-size:0.8rem;color:#8b8b8b;margin-top:0.75rem">
+                5501 Bartell Road<br>Brewerton, NY 13029
+              </div>
+              <div style="font-size:0.8rem;color:#8b8b8b;margin-top:0.5rem">Agreement Date: ${contractDate}</div>
             </div>
 
             <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
-              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">CUSTOMER INFORMATION</div>
-              <div><strong>Name:</strong> ${c.first_name || ''} ${c.last_name || ''}</div>
-              <div><strong>Address:</strong> ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}, ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}</div>
+              <div><strong>Customer Name:</strong> ${c.first_name || ''} ${c.last_name || ''}</div>
+              <div><strong>Customer Address:</strong> ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}</div>
+              <div><strong>City:</strong> ${addr.city || ''} <strong>State:</strong> ${addr.state || ''} <strong>ZIP:</strong> ${addr.zip || ''}</div>
               <div><strong>Phone:</strong> ${c.phone || 'N/A'}</div>
               <div><strong>Email:</strong> ${c.email || 'N/A'}</div>
-              <div><strong>Date of Birth:</strong> ${c.date_of_birth || 'N/A'}</div>
-              <div><strong>State ID:</strong> ${c.identification?.number || 'N/A'} (${c.identification?.state || ''})</div>
+              ${order.delivery_method === 'delivery' ? `<div><strong>Delivery Address:</strong> ${deliveryAddr.street || addr.street || ''}, ${deliveryAddr.city || addr.city || ''}, ${deliveryAddr.state || addr.state || ''} ${deliveryAddr.zip || addr.zip || ''}</div>` : ''}
             </div>
 
             <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
-              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">RENTAL ITEMS</div>
-              <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
-                <thead>
-                  <tr style="border-bottom:1px solid #444">
-                    <th style="text-align:left;padding:0.5rem 0;color:#8b8b8b">Item</th>
-                    <th style="text-align:center;padding:0.5rem 0;color:#8b8b8b">Plan</th>
-                    <th style="text-align:center;padding:0.5rem 0;color:#8b8b8b">Qty</th>
-                    <th style="text-align:right;padding:0.5rem 0;color:#8b8b8b">Monthly</th>
-                    <th style="text-align:right;padding:0.5rem 0;color:#8b8b8b">Down</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${items.map(item => `
-                    <tr style="border-bottom:1px solid #333">
-                      <td style="padding:0.5rem 0">${item.product_name}</td>
-                      <td style="text-align:center;padding:0.5rem 0">${item.plan_label}</td>
-                      <td style="text-align:center;padding:0.5rem 0">${item.quantity}</td>
-                      <td style="text-align:right;padding:0.5rem 0">${item.monthly_payment ? formatPrice(item.monthly_payment) + '/mo' : 'Paid in Full'}</td>
-                      <td style="text-align:right;padding:0.5rem 0">${formatPrice(item.total_down)}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
+              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">1. ITEM DESCRIPTION</div>
+              ${items.map(item => `
+                <div style="margin-bottom:0.5rem;padding:0.5rem;background:#252525;border-radius:4px">
+                  <div><strong>Product:</strong> ${item.product_name}</div>
+                  <div><strong>Condition at Delivery:</strong> ☐ New ☐ Excellent ☐ Good</div>
+                  <div><strong>Serial / Inventory Number:</strong> _______________________</div>
+                </div>
+              `).join('')}
             </div>
 
-            <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
-              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">PAYMENT TERMS</div>
-              <div><strong>Down Payment:</strong> ${formatPrice(order.subtotal || 0)}</div>
-              <div><strong>Delivery Fee:</strong> ${order.delivery_method === 'delivery' ? formatPrice(50) : '$0 (Pickup)'}</div>
-              <div><strong>Total Due Today:</strong> ${formatPrice(order.total_due_today || 0)}</div>
-              ${totalMonthly > 0 ? `<div><strong>Monthly Payment:</strong> ${formatPrice(totalMonthly)}/month</div>` : ''}
-            </div>
+            <div style="font-size:0.7rem;color:#999;line-height:1.4">
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">2. CASH PRICE</strong><br>
+              Ownership transfers immediately if the item is purchased at the cash price.<br>
+              Customer Initials: _______</p>
 
-            <div style="border-top:1px solid #333;padding-top:1rem;margin-bottom:1rem">
-              <div style="font-weight:600;color:#fff;margin-bottom:0.5rem">TERMS AND CONDITIONS</div>
-              <div style="font-size:0.75rem;color:#999;line-height:1.5">
-                <p style="margin-bottom:0.5rem">1. The Customer agrees to rent the items listed above from Furniture Hub under the payment terms specified.</p>
-                <p style="margin-bottom:0.5rem">2. Monthly payments are due on the same day each month as the contract signing date. Late payments may incur fees.</p>
-                <p style="margin-bottom:0.5rem">3. The rented items remain the property of Furniture Hub until all payments are completed.</p>
-                <p style="margin-bottom:0.5rem">4. The Customer agrees to maintain the items in good condition. Damage beyond normal wear may result in additional charges.</p>
-                <p style="margin-bottom:0.5rem">5. Early payoff is permitted without penalty. Contact Furniture Hub for payoff amount.</p>
-                <p style="margin-bottom:0.5rem">6. Failure to make payments may result in collection of items and reporting to credit agencies.</p>
-                <p style="margin-bottom:0.5rem">7. By signing below, the Customer acknowledges receipt of items and agrees to all terms stated herein.</p>
-              </div>
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">3. PAYMENT OPTIONS</strong><br>
+              <strong>90 DAY SAME AS CASH:</strong> Customer may purchase the merchandise for the Cash Price if the full balance is paid within ninety (90) days from the start date. During the 90-day period, the customer must continue making required payments. All payments made during this period will be credited toward the Cash Price payoff amount. If the balance is not paid in full within 90 days, the agreement will continue under the selected ownership plan.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">4. PAYMENT TERMS</strong><br>
+              Payments are due weekly/monthly as selected. Accepted payment methods: Cash, Debit Card, Credit Card, Electronic payment. Furniture Hub will maintain a payment ledger documenting all payments, fees, and balances.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">5. GRACE PERIOD AND LATE FEES</strong><br>
+              A 5-day grace period is allowed before a late fee is applied. Late Fee: $35. Late fees may be triggered by missed payments, partial payments, or returned/declined payments. Payments made after 8:00 PM may post the following business day.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">6. NSF / RETURNED PAYMENT FEE</strong><br>
+              If a payment is returned due to insufficient funds or declined card, the customer agrees to pay a $35 NSF fee. Furniture Hub may require future payments to be made in cash or certified funds.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">7. EARLY PURCHASE OPTION</strong><br>
+              Customer may purchase the merchandise at any time by paying the remaining balance of the selected ownership plan. Furniture Hub may offer an early payoff discount of up to 10% at its discretion.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">8. OWNERSHIP OF MERCHANDISE</strong><br>
+              The merchandise remains the property of Furniture Hub until the Total Cost of Ownership has been paid in full. Customer agrees not to sell, pawn, transfer, rent, or give away the merchandise.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">9. CUSTOMER RESPONSIBILITIES</strong><br>
+              Customer agrees to maintain the merchandise in reasonable condition, use the merchandise for normal household use, and protect the merchandise from damage or theft.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">10. DAMAGE PROTECTION</strong><br>
+              Customer is responsible for maintaining the merchandise in reasonable condition. Optional damage protection coverage may be offered for accidental damage. Damage caused by misuse, fire, flooding, pests, or neglect is not covered.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">11. CHANGE OF ADDRESS / RELOCATION</strong><br>
+              Customer must notify Furniture Hub within 48 hours if they move to a new residence, relocate the merchandise, or change contact information. Failure to notify may result in default of this agreement.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">12. RIGHT TO VERIFY LOCATION OF MERCHANDISE</strong><br>
+              Furniture Hub may verify the location of the merchandise by contacting the customer, requesting photographs of the merchandise, or visiting the listed address during reasonable hours. Verification will be conducted peacefully and in accordance with applicable laws.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">13. IDENTITY VERIFICATION</strong><br>
+              Customer certifies that all information provided is true and accurate. Customer agrees to provide valid government-issued identification. Providing false information to obtain rental merchandise may constitute fraud under New York law.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">14. DEFAULT OF AGREEMENT</strong><br>
+              Customer will be considered in default if: Two (2) consecutive payments are missed after the grace period; Three (3) payments are missed within a 30-day period; The customer refuses to return the merchandise after lawful demand; The merchandise is sold, transferred, hidden, or relocated without authorization; False information was used to obtain the merchandise.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">15. REPOSSESSION RIGHTS</strong><br>
+              Furniture Hub retains ownership of the merchandise until paid in full. If the customer defaults, Furniture Hub may demand return of the merchandise, repossess the merchandise without breach of peace where permitted by law, and pursue recovery costs where permitted.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">16. DEMAND FOR RETURN</strong><br>
+              If payments become delinquent, Furniture Hub may issue a written demand for return. Failure to return leased property after lawful demand may be reported to law enforcement as potential unlawful retention of leased property under New York Penal Law §165.05.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">17. COLLECTIONS</strong><br>
+              Furniture Hub may refer unpaid accounts to collections, pursue legal remedies for recovery, and seek court judgment for unpaid balances.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">18. DISPUTE RESOLUTION</strong><br>
+              Any dispute arising from this agreement may be brought in a court of competent jurisdiction in the State of New York. Nothing prevents either party from filing a claim in Small Claims Court where permitted by law.<br>
+              Customer Initials: _______</p>
+
+              <p style="margin-bottom:0.75rem"><strong style="color:#fff">19. GOVERNING LAW</strong><br>
+              This agreement shall be governed by the laws of the State of New York.<br>
+              Customer Initials: _______</p>
             </div>
 
             <div style="border-top:1px solid #333;padding-top:1.5rem;margin-top:1rem">
+              <div style="font-weight:600;color:#fff;margin-bottom:1rem">CUSTOMER SIGNATURE</div>
               <div style="display:flex;justify-content:space-between;gap:2rem">
                 <div style="flex:1">
-                  <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
-                  <div style="font-size:0.75rem;color:#8b8b8b">Customer Signature</div>
+                  <div>Customer Name: ${c.first_name || ''} ${c.last_name || ''}</div>
+                  <div style="border-bottom:1px solid #666;height:40px;margin:0.5rem 0 0.25rem"></div>
+                  <div style="font-size:0.75rem;color:#8b8b8b">Signature</div>
                 </div>
                 <div style="flex:1">
-                  <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
+                  <div style="border-bottom:1px solid #666;height:40px;margin-top:1.5rem;margin-bottom:0.25rem"></div>
                   <div style="font-size:0.75rem;color:#8b8b8b">Date</div>
                 </div>
               </div>
-              <div style="display:flex;justify-content:space-between;gap:2rem;margin-top:1rem">
+              <div style="font-weight:600;color:#fff;margin:1.5rem 0 1rem">FURNITURE HUB REPRESENTATIVE</div>
+              <div style="display:flex;justify-content:space-between;gap:2rem">
                 <div style="flex:1">
                   <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
-                  <div style="font-size:0.75rem;color:#8b8b8b">Furniture Hub Representative</div>
+                  <div style="font-size:0.75rem;color:#8b8b8b">Name / Signature</div>
                 </div>
                 <div style="flex:1">
                   <div style="border-bottom:1px solid #666;height:40px;margin-bottom:0.25rem"></div>
@@ -6259,145 +6295,207 @@
       const c = order.customer_info || {};
       const addr = c.address || {};
       const items = order.items || [];
+      const deliveryAddr = wizardData.deliveryAddress || addr;
       const contractDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-      const totalMonthly = items.reduce((sum, item) => {
-        if (item.plan_months > 0) return sum + (item.monthly_payment || 0) * item.quantity;
-        return sum;
-      }, 0);
-
-      let y = 20;
-      const margin = 20;
+      let y = 15;
+      const margin = 15;
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const contentWidth = pageWidth - margin * 2;
 
-      doc.setFontSize(20);
+      function checkPage(needed = 15) {
+        if (y + needed > pageHeight - 20) {
+          doc.addPage();
+          y = 15;
+        }
+      }
+
+      function addSection(title, content, initials = true) {
+        checkPage(25);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, margin, y);
+        y += 5;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        const lines = doc.splitTextToSize(content, contentWidth);
+        lines.forEach(line => {
+          checkPage(5);
+          doc.text(line, margin, y);
+          y += 4;
+        });
+        if (initials) {
+          y += 2;
+          doc.text('Customer Initials: _______', margin, y);
+          y += 6;
+        } else {
+          y += 4;
+        }
+      }
+
+      // Header
+      doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('FURNITURE HUB', pageWidth / 2, y, { align: 'center' });
-      y += 8;
-      doc.setFontSize(14);
-      doc.text('Rental Agreement', pageWidth / 2, y, { align: 'center' });
-      y += 8;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Contract Date: ${contractDate}`, pageWidth / 2, y, { align: 'center' });
-      y += 5;
-      doc.text(`Order #: ${order.order_number}`, pageWidth / 2, y, { align: 'center' });
-      y += 12;
-
-      doc.setDrawColor(200);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 8;
-
+      y += 6;
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('CUSTOMER INFORMATION', margin, y);
-      y += 7;
-      doc.setFontSize(10);
+      doc.text('RENTAL / LEASE-TO-OWN AGREEMENT', pageWidth / 2, y, { align: 'center' });
+      y += 5;
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Name: ${c.first_name || ''} ${c.last_name || ''}`, margin, y); y += 5;
-      doc.text(`Address: ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}, ${addr.city || ''}, ${addr.state || ''} ${addr.zip || ''}`, margin, y); y += 5;
+      doc.text('Furniture Hub (D.B.A.)', pageWidth / 2, y, { align: 'center' });
+      y += 4;
+      doc.text('5501 Bartell Road, Brewerton, NY 13029', pageWidth / 2, y, { align: 'center' });
+      y += 6;
+      doc.text(`Agreement Date: ${contractDate}`, pageWidth / 2, y, { align: 'center' });
+      y += 8;
+
+      // Customer Info
+      doc.setDrawColor(150);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+      doc.setFontSize(9);
+      doc.text(`Customer Name: ${c.first_name || ''} ${c.last_name || ''}`, margin, y); y += 5;
+      doc.text(`Customer Address: ${addr.street || ''}${addr.unit ? ', ' + addr.unit : ''}`, margin, y); y += 5;
+      doc.text(`City: ${addr.city || ''}  State: ${addr.state || ''}  ZIP: ${addr.zip || ''}`, margin, y); y += 5;
       doc.text(`Phone: ${c.phone || 'N/A'}`, margin, y); y += 5;
       doc.text(`Email: ${c.email || 'N/A'}`, margin, y); y += 5;
-      doc.text(`Date of Birth: ${c.date_of_birth || 'N/A'}`, margin, y); y += 5;
-      doc.text(`State ID: ${c.identification?.number || 'N/A'} (${c.identification?.state || ''})`, margin, y); y += 10;
-
-      doc.setDrawColor(200);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 8;
-
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('RENTAL ITEMS', margin, y);
-      y += 7;
-
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Item', margin, y);
-      doc.text('Plan', 90, y);
-      doc.text('Qty', 120, y);
-      doc.text('Monthly', 140, y);
-      doc.text('Down', 170, y);
-      y += 5;
-      doc.setDrawColor(220);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 5;
-
-      doc.setFont('helvetica', 'normal');
-      items.forEach(item => {
-        const name = item.product_name.length > 30 ? item.product_name.substring(0, 28) + '...' : item.product_name;
-        doc.text(name, margin, y);
-        doc.text(item.plan_label, 90, y);
-        doc.text(String(item.quantity), 125, y);
-        doc.text(item.monthly_payment ? `$${item.monthly_payment}/mo` : 'Paid', 140, y);
-        doc.text(`$${item.total_down}`, 170, y);
-        y += 6;
-      });
-      y += 5;
-
-      doc.setDrawColor(200);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 8;
-
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PAYMENT TERMS', margin, y);
-      y += 7;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Down Payment: ${formatPrice(order.subtotal || 0)}`, margin, y); y += 5;
-      doc.text(`Delivery Fee: ${order.delivery_method === 'delivery' ? '$50' : '$0 (Pickup)'}`, margin, y); y += 5;
-      doc.text(`Total Due Today: ${formatPrice(order.total_due_today || 0)}`, margin, y); y += 5;
-      if (totalMonthly > 0) {
-        doc.text(`Monthly Payment: ${formatPrice(totalMonthly)}/month`, margin, y); y += 5;
+      if (order.delivery_method === 'delivery') {
+        doc.text(`Delivery Address: ${deliveryAddr.street || addr.street || ''}, ${deliveryAddr.city || addr.city || ''}, ${deliveryAddr.state || addr.state || ''} ${deliveryAddr.zip || addr.zip || ''}`, margin, y);
+        y += 5;
       }
-      y += 5;
+      y += 4;
 
-      doc.setDrawColor(200);
+      // Items
+      doc.setDrawColor(150);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 6;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('1. ITEM DESCRIPTION', margin, y);
+      y += 6;
+      
+      items.forEach((item, idx) => {
+        checkPage(20);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const itemLines = doc.splitTextToSize(`Product: ${item.product_name}`, contentWidth);
+        itemLines.forEach(line => {
+          doc.text(line, margin, y);
+          y += 4;
+        });
+        doc.text('Condition at Delivery: [ ] New  [ ] Excellent  [ ] Good', margin, y); y += 4;
+        doc.text('Serial / Inventory Number: _______________________', margin, y); y += 6;
+      });
+
+      // Section 2 - Cash Price
+      addSection('2. CASH PRICE', 
+        'Ownership transfers immediately if the item is purchased at the cash price.');
+
+      // Section 3 - Payment Options  
+      addSection('3. PAYMENT OPTIONS', 
+        '90 DAY SAME AS CASH: Customer may purchase the merchandise for the Cash Price if the full balance is paid within ninety (90) days from the start date of this agreement. During the 90-day period, the customer must continue making the required payments according to the ownership plan selected in this agreement. All payments made during the 90-day period will be credited toward the Cash Price payoff amount. If the remaining balance of the Cash Price is paid in full within 90 days, the customer will own the merchandise and no additional markup will apply. If the balance is not paid in full within 90 days, the agreement will continue under the selected ownership plan and the customer will remain responsible for the total cost of that plan. Failure to make scheduled payments during the 90-day period may result in late fees, default of the agreement, and repossession rights as outlined in this contract.');
+
+      // Section 4 - Payment Terms
+      addSection('4. PAYMENT TERMS', 
+        'Payments are due weekly/monthly beginning on the start date. Accepted payment methods: Cash, Debit Card, Credit Card, Electronic payment. Furniture Hub will maintain a payment ledger documenting all payments, fees, and balances.');
+
+      // Section 5 - Grace Period
+      addSection('5. GRACE PERIOD AND LATE FEES', 
+        'A 5-day grace period is allowed before a late fee is applied. Late Fee: $35. Late fees may be triggered by: Missed payments, Partial payments leaving a balance, Returned or declined payments. Payments made after 8:00 PM may post the following business day.');
+
+      // Section 6 - NSF Fee
+      addSection('6. NSF / RETURNED PAYMENT FEE', 
+        'If a payment is returned due to insufficient funds or declined card, the customer agrees to pay a $35 NSF fee. Furniture Hub may require future payments to be made in cash or certified funds.');
+
+      // Section 7 - Early Purchase
+      addSection('7. EARLY PURCHASE OPTION', 
+        'Customer may purchase the merchandise at any time by paying the remaining balance of the selected ownership plan. Furniture Hub may offer an early payoff discount of up to 10% of the remaining balance at its discretion.');
+
+      // Section 8 - Ownership
+      addSection('8. OWNERSHIP OF MERCHANDISE', 
+        'The merchandise remains the property of Furniture Hub until the Total Cost of Ownership has been paid in full. Customer agrees not to: Sell, Pawn, Transfer, Rent, or Give away the merchandise.');
+
+      // Section 9 - Customer Responsibilities
+      addSection('9. CUSTOMER RESPONSIBILITIES', 
+        'Customer agrees to: Maintain the merchandise in reasonable condition, Use the merchandise for normal household use, Protect the merchandise from damage or theft.');
+
+      // Section 10 - Damage Protection
+      addSection('10. DAMAGE PROTECTION', 
+        'Customer is responsible for maintaining the merchandise in reasonable condition. Optional damage protection coverage may be offered for accidental damage. Damage caused by misuse, fire, flooding, pests, or neglect is not covered.');
+
+      // Section 11 - Change of Address
+      addSection('11. CHANGE OF ADDRESS / RELOCATION', 
+        'Customer must notify Furniture Hub within 48 hours if they: Move to a new residence, Relocate the merchandise, Change contact information. Failure to notify Furniture Hub may result in default of this agreement.');
+
+      // Section 12 - Verify Location
+      addSection('12. RIGHT TO VERIFY LOCATION OF MERCHANDISE', 
+        'Furniture Hub may verify the location of the merchandise by: Contacting the customer, Requesting photographs of the merchandise, Visiting the listed address during reasonable hours. Verification will be conducted peacefully and in accordance with applicable laws.');
+
+      // Section 13 - Identity Verification
+      addSection('13. IDENTITY VERIFICATION', 
+        'Customer certifies that all information provided is true and accurate. Customer agrees to provide valid government-issued identification. Providing false information to obtain rental merchandise may constitute fraud under New York law.');
+
+      // Section 14 - Default
+      addSection('14. DEFAULT OF AGREEMENT', 
+        'Customer will be considered in default if: Two (2) consecutive weekly payments are missed after the grace period, Three (3) payments are missed within a 30-day period, The customer refuses to return the merchandise after lawful demand, The merchandise is sold, transferred, hidden, or relocated without authorization, False information was used to obtain the merchandise.');
+
+      // Section 15 - Repossession
+      addSection('15. REPOSSESSION RIGHTS', 
+        'Furniture Hub retains ownership of the merchandise until paid in full. If the customer defaults, Furniture Hub may: Demand return of the merchandise, Repossess the merchandise without breach of peace where permitted by law, Pursue recovery costs where permitted.');
+
+      // Section 16 - Demand for Return
+      addSection('16. DEMAND FOR RETURN', 
+        'If payments become delinquent, Furniture Hub may issue a written demand for return. Failure to return leased property after lawful demand may be reported to law enforcement as potential unlawful retention of leased property under New York Penal Law §165.05.');
+
+      // Section 17 - Collections
+      addSection('17. COLLECTIONS', 
+        'Furniture Hub may: Refer unpaid accounts to collections, Pursue legal remedies for recovery, Seek court judgment for unpaid balances.');
+
+      // Section 18 - Dispute Resolution
+      addSection('18. DISPUTE RESOLUTION', 
+        'Any dispute arising from this agreement may be brought in a court of competent jurisdiction in the State of New York. Nothing prevents either party from filing a claim in Small Claims Court where permitted by law.');
+
+      // Section 19 - Governing Law
+      addSection('19. GOVERNING LAW', 
+        'This agreement shall be governed by the laws of the State of New York.');
+
+      // Signatures
+      checkPage(50);
+      y += 5;
+      doc.setDrawColor(150);
       doc.line(margin, y, pageWidth - margin, y);
       y += 8;
 
-      doc.setFontSize(12);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('TERMS AND CONDITIONS', margin, y);
-      y += 7;
-      doc.setFontSize(8);
+      doc.text('CUSTOMER SIGNATURE', margin, y);
+      y += 6;
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      const terms = [
-        '1. The Customer agrees to rent the items listed above from Furniture Hub under the payment terms specified.',
-        '2. Monthly payments are due on the same day each month as the contract signing date. Late payments may incur fees.',
-        '3. The rented items remain the property of Furniture Hub until all payments are completed.',
-        '4. The Customer agrees to maintain the items in good condition. Damage beyond normal wear may result in additional charges.',
-        '5. Early payoff is permitted without penalty. Contact Furniture Hub for payoff amount.',
-        '6. Failure to make payments may result in collection of items and reporting to credit agencies.',
-        '7. By signing below, the Customer acknowledges receipt of items and agrees to all terms stated herein.'
-      ];
-      terms.forEach(term => {
-        const lines = doc.splitTextToSize(term, pageWidth - margin * 2);
-        doc.text(lines, margin, y);
-        y += lines.length * 4 + 2;
-      });
+      doc.text(`Customer Name: ${c.first_name || ''} ${c.last_name || ''}`, margin, y);
+      y += 8;
+      doc.line(margin, y, 100, y);
+      doc.line(110, y, pageWidth - margin, y);
+      y += 4;
+      doc.setFontSize(8);
+      doc.text('Signature', margin, y);
+      doc.text('Date', 110, y);
       y += 10;
 
-      if (y > 240) {
-        doc.addPage();
-        y = 20;
-      }
-
-      doc.setDrawColor(200);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 15;
-
       doc.setFontSize(10);
-      doc.line(margin, y + 10, 90, y + 10);
-      doc.text('Customer Signature', margin, y + 15);
-      doc.line(110, y + 10, pageWidth - margin, y + 10);
-      doc.text('Date', 110, y + 15);
-      y += 25;
-
-      doc.line(margin, y + 10, 90, y + 10);
-      doc.text('Furniture Hub Representative', margin, y + 15);
-      doc.line(110, y + 10, pageWidth - margin, y + 10);
-      doc.text('Date', 110, y + 15);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FURNITURE HUB REPRESENTATIVE', margin, y);
+      y += 8;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.line(margin, y, 100, y);
+      doc.line(110, y, pageWidth - margin, y);
+      y += 4;
+      doc.setFontSize(8);
+      doc.text('Name / Signature', margin, y);
+      doc.text('Date', 110, y);
 
       doc.save(`FurnitureHub_Contract_${order.order_number}.pdf`);
     }
